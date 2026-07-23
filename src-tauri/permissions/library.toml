@@ -1,9 +1,49 @@
 [[permission]]
-identifier = "allow-scan-folder"
-description = "Allows recursively scanning a folder for book files."
-commands.allow = ["scan_folder"]
+identifier = "allow-list-folders"
+description = "Allows listing watched folders from SQLite."
+commands.allow = ["list_folders"]
+
+[[permission]]
+identifier = "allow-add-folder"
+description = "Allows adding a watched folder to SQLite."
+commands.allow = ["add_folder"]
+
+[[permission]]
+identifier = "allow-remove-folder"
+description = "Allows removing a watched folder from SQLite."
+commands.allow = ["remove_folder"]
+
+[[permission]]
+identifier = "allow-refresh-library"
+description = "Allows scanning folders and reconciling books in SQLite."
+commands.allow = ["refresh_library"]
 
 [[permission]]
 identifier = "allow-read-text-file"
 description = "Allows reading a .txt book file for the text reader."
 commands.allow = ["read_text_file"]
+
+[[permission]]
+identifier = "allow-open-book"
+description = "Allows opening a book and updating last_opened."
+commands.allow = ["open_book"]
+
+[[permission]]
+identifier = "allow-save-reading-state"
+description = "Allows saving reading progress and position."
+commands.allow = ["save_reading_state"]
+
+[[permission]]
+identifier = "allow-set-book-favourite"
+description = "Allows toggling a book favourite flag."
+commands.allow = ["set_book_favourite"]
+
+[[permission]]
+identifier = "allow-get-setting"
+description = "Allows reading a setting from SQLite."
+commands.allow = ["get_setting"]
+
+[[permission]]
+identifier = "allow-set-setting"
+description = "Allows writing a setting to SQLite."
+commands.allow = ["set_setting"]

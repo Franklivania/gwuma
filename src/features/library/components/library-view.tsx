@@ -2,6 +2,7 @@ import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/button";
 import { EmptyState } from "@/components/empty-state";
 import { Separator } from "@/components/separator";
+import { openBook as openBookCommand } from "@/features/library/services/library-service";
 import { useLibraryStore } from "@/stores/library.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useReaderStore } from "@/stores/reader.store";
@@ -13,10 +14,17 @@ import styles from "./library-view.module.css";
 export function LibraryView() {
   const books = useLibraryStore((state) => state.books);
   const addFolder = useLibraryStore((state) => state.addFolder);
+  const upsertBook = useLibraryStore((state) => state.upsertBook);
 
-  function openBook(book: Book) {
-    useReaderStore.getState().setBook(book);
-    useNavigationStore.getState().push("reader");
+  async function openBook(book: Book) {
+    try {
+      const opened = await openBookCommand(book.id);
+      useReaderStore.getState().applyBookState(opened);
+      upsertBook(opened);
+      useNavigationStore.getState().push("reader");
+    } catch (error) {
+      console.error("Failed to open book", error);
+    }
   }
 
   return (
@@ -69,9 +77,13 @@ export function LibraryView() {
                 <button
                   type="button"
                   className={styles.book}
-                  onClick={() => openBook(book)}
+                  onClick={() => void openBook(book)}
                 >
-                  <BookCover title={book.title} src={book.coverUrl} size="md" />
+                  <BookCover
+                    title={book.title}
+                    src={book.coverUrl ?? undefined}
+                    size="lg"
+                  />
                   <span className={styles.bookMeta}>
                     <span className={styles.bookTitle}>{book.title}</span>
                     <span className={styles.bookAuthor}>{book.author}</span>

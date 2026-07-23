@@ -7,7 +7,15 @@
     "core:default",
     "opener:default",
     "dialog:default",
-    "allow-scan-folder",
-    "allow-read-text-file"
+    "allow-list-folders",
+    "allow-add-folder",
+    "allow-remove-folder",
+    "allow-refresh-library",
+    "allow-read-text-file",
+    "allow-open-book",
+    "allow-save-reading-state",
+    "allow-set-book-favourite",
+    "allow-get-setting",
+    "allow-set-setting"
   ]
 }

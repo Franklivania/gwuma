@@ -1,20 +1,69 @@
 .root {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
   width: 100%;
   min-width: 0;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
+  background: var(--reader-surface, var(--bg));
+  color: var(--reader-ink, var(--text-primary));
+}
+
+.root[data-reader-bg="theme"] {
+  --reader-surface: var(--reader-bg, var(--bg));
+  --reader-ink: var(--reader-text, var(--text-primary));
+}
+
+.root[data-reader-bg="black"] {
+  --reader-surface: #0a0a0a;
+  --reader-ink: #f2f2f2;
+}
+
+.root[data-reader-bg="white"] {
+  --reader-surface: #fafafa;
+  --reader-ink: #1a1a1a;
 }
 
 .header {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 2;
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  flex-shrink: 0;
   min-width: 0;
+  padding: var(--space-2);
+  background: transparent;
+  transition:
+    opacity var(--duration-normal) var(--ease-default),
+    transform var(--duration-normal) var(--ease-default);
+}
+
+.headerVisible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.headerHidden {
+  opacity: 0;
+  transform: translateY(-0.5rem);
+  pointer-events: none;
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-radius: var(--radius-md);
 }
 
 .heading {
@@ -45,6 +94,19 @@
   min-height: 0;
   min-width: 0;
   overflow: auto;
+  padding: var(--space-5);
+  background: transparent;
+}
+
+.bodyPaginated {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.page {
+  min-height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .status {
@@ -61,5 +123,14 @@
   font-family: var(--font-sans);
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
-  color: var(--text-primary);
+  color: var(--reader-ink, var(--text-primary));
+}
+
+.nightLight {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, #ffb347 18%, transparent);
+  mix-blend-mode: multiply;
 }
