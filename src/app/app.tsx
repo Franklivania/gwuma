@@ -1,5 +1,7 @@
 import { LibraryView } from "@/features/library/components";
+import { ReaderView } from "@/features/reader/components";
 import { SettingsView } from "@/features/settings/components";
+import { StatisticsView } from "@/features/statistics/components";
 import { DialogHost } from "@/layouts/dialog-host";
 import { Footer } from "@/layouts/footer";
 import { MainContent } from "@/layouts/main-content";
@@ -23,9 +25,9 @@ function CurrentView() {
     case "settings":
       return <SettingsView />;
     case "statistics":
-      return <p>Statistics</p>;
+      return <StatisticsView />;
     case "reader":
-      return <p>Reader</p>;
+      return <ReaderView />;
     case "library":
     default:
       return <LibraryView />;

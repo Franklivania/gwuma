@@ -1,3 +1,4 @@
+import { useLibraryStore } from "@/stores/library.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { useEffect, type ReactNode } from "react";
 
@@ -11,6 +12,10 @@ export function Providers({ children }: ProvidersProps) {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    void useLibraryStore.getState().refresh();
+  }, []);
 
   return <>{children}</>;
 }

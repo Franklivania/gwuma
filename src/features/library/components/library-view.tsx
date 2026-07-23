@@ -1,13 +1,23 @@
-import { EmptyState } from "@/components/empty-state";
+import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/button";
-import { useDialogStore } from "@/stores/dialog.store";
+import { EmptyState } from "@/components/empty-state";
 import { Separator } from "@/components/separator";
+import { useLibraryStore } from "@/stores/library.store";
+import { useNavigationStore } from "@/stores/navigation.store";
+import { useReaderStore } from "@/stores/reader.store";
+import type { Book } from "@/types";
 import { Bookmark03Icon, FolderLibraryIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import styles from "./library-view.module.css";
 
 export function LibraryView() {
-  const open = useDialogStore((state) => state.open);
+  const books = useLibraryStore((state) => state.books);
+  const addFolder = useLibraryStore((state) => state.addFolder);
+
+  function openBook(book: Book) {
+    useReaderStore.getState().setBook(book);
+    useNavigationStore.getState().push("reader");
+  }
 
   return (
     <div className={styles.root}>
@@ -23,7 +33,6 @@ export function LibraryView() {
         <EmptyState
           title="Your Bookmarks is empty"
           description="Add a bookmark from your list of books"
-          // action={<Button onClick={() => open("folder-picker")}>Add folder</Button>}
         />
       </section>
 
@@ -34,15 +43,47 @@ export function LibraryView() {
             <h3>Library</h3>
           </div>
           <Separator decorative className={styles.headerRule} />
+          {books.length > 0 ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void addFolder()}
+            >
+              Add folder
+            </Button>
+          ) : null}
         </div>
 
-        <EmptyState
-          title="Your library is empty"
-          description="Add a folder of books to start reading. Gwuma indexes files in place and never copies them."
-          action={
-            <Button onClick={() => open("folder-picker")}>Add folder</Button>
-          }
-        />
+        {books.length === 0 ? (
+          <EmptyState
+            title="Your library is empty"
+            description="Add a folder of books to start reading. Gwuma indexes files in place and never copies them."
+            action={
+              <Button onClick={() => void addFolder()}>Add folder</Button>
+            }
+          />
+        ) : (
+          <ul className={styles.grid}>
+            {books.map((book) => (
+              <li key={book.id}>
+                <button
+                  type="button"
+                  className={styles.book}
+                  onClick={() => openBook(book)}
+                >
+                  <BookCover title={book.title} src={book.coverUrl} size="md" />
+                  <span className={styles.bookMeta}>
+                    <span className={styles.bookTitle}>{book.title}</span>
+                    <span className={styles.bookAuthor}>{book.author}</span>
+                    <span className={styles.bookFormat}>
+                      {book.format.toUpperCase()}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
