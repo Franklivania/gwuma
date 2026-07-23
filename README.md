@@ -148,6 +148,11 @@ enable GitHub Actions to create pull requests so Changesets can maintain its
 version PR. Unsigned releases use the built-in `GITHUB_TOKEN` and require no
 additional secret.
 
+## Guides
+
+See [GUIDES.md](GUIDES.md) for how to use and update shared components, themes,
+and the current store APIs.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. It

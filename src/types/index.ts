@@ -6,6 +6,7 @@ export type { DialogId, DialogEntry } from "./dialog";
 export type {
   ReadingMode,
   LibrarySort,
+  LibraryActivity,
   LibraryFilters,
   Book,
   Folder,

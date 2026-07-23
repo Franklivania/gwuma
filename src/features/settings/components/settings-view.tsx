@@ -13,8 +13,7 @@ export function SettingsView() {
     <div className={styles.section}>
       <h2 className={styles.heading}>Appearance</h2>
       <p className={styles.description}>
-        Themes share the same semantic tokens. Switching only changes variable
-        values.
+        You can change the appearance of the app to your liking here
       </p>
 
       <div className={styles.themeGrid}>
@@ -39,14 +38,6 @@ export function SettingsView() {
       <div className={styles.actions}>
         <Button variant="secondary" onClick={() => open("about")}>
           About Gwuma
-        </Button>
-        <Button
-          variant="plain"
-          onClick={() =>
-            open("confirm", { payload: { message: "Demo confirm dialog." } })
-          }
-        >
-          Open confirm dialog
         </Button>
       </div>
     </div>

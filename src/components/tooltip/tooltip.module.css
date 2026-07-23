@@ -5,20 +5,45 @@
 
 .tip {
   position: absolute;
-  bottom: calc(100% + var(--space-2));
-  left: 50%;
-  transform: translateX(-50%);
   padding: var(--space-1) var(--space-2);
-  background: var(--surface-tertiary);
+  background: var(--surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
   font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-md);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-fast) var(--ease-default);
-  z-index: 10;
+  z-index: 50;
+}
+
+.top {
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.right {
+  top: 50%;
+  left: calc(100% + var(--space-2));
+  transform: translateY(-50%);
+}
+
+.bottom {
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.left {
+  top: 50%;
+  right: calc(100% + var(--space-2));
+  transform: translateY(-50%);
 }
 
 .root:hover .tip,

@@ -2,6 +2,8 @@ export type ReadingMode = "scroll" | "paginated";
 
 export type LibrarySort = "title" | "author" | "recent" | "progress";
 
+export type LibraryActivity = "idle" | "scanning" | "indexing" | "done";
+
 export type LibraryFilters = {
   query: string;
   folderId: string | null;
