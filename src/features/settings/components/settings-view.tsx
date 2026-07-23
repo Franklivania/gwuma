@@ -1,4 +1,5 @@
 import { Button } from "@/components/button";
+import { BackButton } from "@/components/back-button";
 import { useDialogStore } from "@/stores/dialog.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { THEME_IDS, THEME_LABELS, type ThemeId } from "@/types";
@@ -11,6 +12,7 @@ export function SettingsView() {
 
   return (
     <div className={styles.section}>
+      <BackButton />
       <h2 className={styles.heading}>Appearance</h2>
       <p className={styles.description}>
         You can change the appearance of the app to your liking here

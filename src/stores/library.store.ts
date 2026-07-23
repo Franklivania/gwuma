@@ -1,10 +1,8 @@
 import { create } from "zustand";
 import {
-  folderFromPath,
-  loadFolders,
+  addFolder as addFolderCommand,
   pickFolder,
-  saveFolders,
-  scanFolder,
+  refreshLibrary,
 } from "@/features/library/services/library-service";
 import type {
   Book,
@@ -24,6 +22,7 @@ type LibraryState = {
   setFilters: (filters: Partial<LibraryFilters>) => void;
   setSort: (sort: LibrarySort) => void;
   setActivity: (activity: LibraryActivity, detail?: string | null) => void;
+  upsertBook: (book: Book) => void;
   addFolder: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -57,66 +56,46 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ activity, activityDetail: detail });
   },
 
+  upsertBook: (book) => {
+    const books = get().books;
+    const index = books.findIndex((entry) => entry.id === book.id);
+    if (index === -1) {
+      set({ books: [...books, book] });
+      return;
+    }
+    const next = books.slice();
+    next[index] = book;
+    set({ books: next });
+  },
+
   addFolder: async () => {
     const path = await pickFolder();
     if (!path) return;
 
-    const existing = get().folders;
-    if (existing.some((folder) => folder.path === path)) {
-      await get().refresh();
-      return;
-    }
-
-    const nextFolders = [...existing, folderFromPath(path)];
-    saveFolders(nextFolders);
-    set({ folders: nextFolders });
+    await addFolderCommand(path);
     await get().refresh();
   },
 
   refresh: async () => {
     clearDoneIdleTimer();
 
-    const folders = loadFolders();
-    set({ folders });
+    get().setActivity("scanning", "library");
 
-    if (folders.length === 0) {
-      set({ books: [], activity: "idle", activityDetail: null });
-      return;
+    try {
+      get().setActivity("indexing", "SQLite");
+      const snapshot = await refreshLibrary();
+      set({ folders: snapshot.folders, books: snapshot.books });
+      get().setActivity("done", `${snapshot.books.length} books`);
+
+      doneIdleTimer = setTimeout(() => {
+        if (get().activity === "done") {
+          set({ activity: "idle", activityDetail: null });
+        }
+        doneIdleTimer = null;
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to refresh library", error);
+      set({ activity: "idle", activityDetail: null });
     }
-
-    get().setActivity(
-      "scanning",
-      folders.length === 1 ? folders[0].name : `${folders.length} folders`,
-    );
-
-    const scanned: Book[] = [];
-    for (const folder of folders) {
-      try {
-        const books = await scanFolder(folder.path);
-        scanned.push(...books);
-      } catch (error) {
-        console.error(`Failed to scan folder: ${folder.path}`, error);
-      }
-    }
-
-    get().setActivity("indexing", `${scanned.length} files`);
-
-    const byPath = new Map<string, Book>();
-    for (const book of scanned) {
-      byPath.set(book.path, book);
-    }
-    const books = Array.from(byPath.values()).sort((a, b) =>
-      a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
-    );
-
-    set({ books });
-    get().setActivity("done", `${books.length} books`);
-
-    doneIdleTimer = setTimeout(() => {
-      if (get().activity === "done") {
-        set({ activity: "idle", activityDetail: null });
-      }
-      doneIdleTimer = null;
-    }, 2000);
   },
 }));

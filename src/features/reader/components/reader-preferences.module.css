@@ -1,0 +1,215 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: var(--overlay);
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity var(--duration-normal) var(--ease-default);
+}
+
+.backdropVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.root {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 22rem);
+  height: 100%;
+  background: var(--surface);
+  border-inline-start: 1px solid var(--border-subtle);
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease-default);
+  pointer-events: none;
+  outline: none;
+}
+
+.rootOpen {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-4);
+  overflow: auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.segment {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.segmentOption {
+  flex: 1 1 auto;
+  min-width: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.segmentOptionActive {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.scrollSpeedSection {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.notchTrack {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+  position: relative;
+}
+
+.notchTrack::before {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-4);
+  top: calc(var(--space-3) + 0.4rem);
+  height: 2px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.notch {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.notch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notchDot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--border);
+  background: var(--surface);
+}
+
+.notchActive {
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.notchActive .notchDot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.notchLabel {
+  line-height: 1;
+}
+
+.customRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.toggleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.toggleRow input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}

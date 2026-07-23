@@ -1,13 +1,15 @@
-use serde::Serialize;
+mod db;
+
+use db::models::{BookRow, FolderRow, LibrarySnapshot, ScannedBook};
+use db::{library, reading, settings};
+use rusqlite::Connection;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use tauri::{AppHandle, Manager, State};
 use walkdir::WalkDir;
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScannedBook {
-    pub path: String,
-    pub title: String,
-    pub format: String,
+pub struct AppState {
+    pub db: Mutex<Connection>,
 }
 
 fn book_format(path: &Path) -> Option<&'static str> {
@@ -20,9 +22,8 @@ fn book_format(path: &Path) -> Option<&'static str> {
     }
 }
 
-#[tauri::command]
-fn scan_folder(path: String) -> Result<Vec<ScannedBook>, String> {
-    let root = PathBuf::from(&path);
+fn scan_folder_path(path: &str) -> Result<Vec<ScannedBook>, String> {
+    let root = PathBuf::from(path);
     if !root.is_dir() {
         return Err(format!("Not a directory: {path}"));
     }
@@ -60,6 +61,52 @@ fn scan_folder(path: String) -> Result<Vec<ScannedBook>, String> {
     Ok(books)
 }
 
+fn with_db<T>(
+    state: &State<'_, AppState>,
+    f: impl FnOnce(&Connection) -> Result<T, String>,
+) -> Result<T, String> {
+    let conn = state
+        .db
+        .lock()
+        .map_err(|_| "Database lock poisoned".to_string())?;
+    f(&conn)
+}
+
+#[tauri::command]
+fn list_folders(state: State<'_, AppState>) -> Result<Vec<FolderRow>, String> {
+    with_db(&state, |conn| {
+        library::list_folders(conn).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn add_folder(path: String, state: State<'_, AppState>) -> Result<FolderRow, String> {
+    with_db(&state, |conn| {
+        library::add_folder(conn, &path).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn remove_folder(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    with_db(&state, |conn| {
+        library::remove_folder(conn, &id).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn refresh_library(state: State<'_, AppState>) -> Result<LibrarySnapshot, String> {
+    with_db(&state, |conn| {
+        let folders = library::list_folders(conn).map_err(|e| e.to_string())?;
+
+        for folder in &folders {
+            let scanned = scan_folder_path(&folder.path)?;
+            library::reconcile_scan(conn, &folder.id, &scanned).map_err(|e| e.to_string())?;
+        }
+
+        library::library_snapshot(conn).map_err(|e| e.to_string())
+    })
+}
+
 #[tauri::command]
 fn read_text_file(path: String) -> Result<String, String> {
     let file_path = PathBuf::from(&path);
@@ -74,12 +121,89 @@ fn read_text_file(path: String) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
+#[tauri::command]
+fn open_book(id: String, state: State<'_, AppState>) -> Result<BookRow, String> {
+    with_db(&state, |conn| {
+        reading::open_book(conn, &id)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Book not found: {id}"))
+    })
+}
+
+#[tauri::command]
+fn save_reading_state(
+    id: String,
+    progress: f64,
+    last_position: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<BookRow, String> {
+    with_db(&state, |conn| {
+        reading::save_reading_state(conn, &id, progress, last_position.as_deref())
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Book not found: {id}"))
+    })
+}
+
+#[tauri::command]
+fn set_book_favourite(
+    id: String,
+    favourite: bool,
+    state: State<'_, AppState>,
+) -> Result<BookRow, String> {
+    with_db(&state, |conn| {
+        reading::set_book_favourite(conn, &id, favourite)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Book not found: {id}"))
+    })
+}
+
+#[tauri::command]
+fn get_setting(key: String, state: State<'_, AppState>) -> Result<Option<String>, String> {
+    with_db(&state, |conn| {
+        settings::get_setting(conn, &key).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn set_setting(key: String, value: String, state: State<'_, AppState>) -> Result<(), String> {
+    with_db(&state, |conn| {
+        settings::set_setting(conn, &key, &value).map_err(|e| e.to_string())
+    })
+}
+
+fn init_database(app: &AppHandle) -> Result<Connection, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {e}"))?;
+    let db_path = dir.join("gwuma.db");
+    db::open_database(&db_path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![scan_folder, read_text_file])
+        .setup(|app| {
+            let conn = init_database(app.handle())?;
+            app.manage(AppState {
+                db: Mutex::new(conn),
+            });
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            list_folders,
+            add_folder,
+            remove_folder,
+            refresh_library,
+            read_text_file,
+            open_book,
+            save_reading_state,
+            set_book_favourite,
+            get_setting,
+            set_setting,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
