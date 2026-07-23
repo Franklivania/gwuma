@@ -1,0 +1,16 @@
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3rem;
+  padding: 0 var(--space-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}

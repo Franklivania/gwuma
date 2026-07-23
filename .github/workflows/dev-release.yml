@@ -1,0 +1,161 @@
+name: Gwuma Development Release
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare prerelease
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    outputs:
+      should-publish: ${{ steps.changesets.outputs.should-publish }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect pending Changesets
+        id: changesets
+        shell: bash
+        run: |
+          should_publish=false
+
+          for file in .changeset/*.md; do
+            if [[ -f "$file" && "$file" != ".changeset/README.md" ]]; then
+              should_publish=true
+              break
+            fi
+          done
+
+          echo "should-publish=$should_publish" >> "$GITHUB_OUTPUT"
+
+          if [[ "$should_publish" != "true" ]]; then
+            echo "No pending Changesets; skipping development release."
+          fi
+
+      - name: Calculate prerelease version
+        id: version
+        if: steps.changesets.outputs.should-publish == 'true'
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          pnpm exec changeset status --output .changeset/status.json
+          node --input-type=module <<'EOF'
+          import { readFileSync } from "node:fs";
+
+          const status = JSON.parse(
+            readFileSync(".changeset/status.json", "utf8"),
+          );
+          const release = status.releases.find(({ name }) => name === "gwuma");
+
+          if (!release) {
+            throw new Error("Changesets did not calculate a release for gwuma");
+          }
+
+          const shortSha = process.env.COMMIT_SHA.slice(0, 7);
+          const version =
+            `${release.newVersion}-dev.${process.env.RUN_NUMBER}.${shortSha}`;
+
+          process.stdout.write(`Preparing Gwuma ${version}\n`);
+          const output = process.env.GITHUB_OUTPUT;
+          await import("node:fs/promises").then(({ appendFile }) =>
+            appendFile(output, `version=${version}\n`),
+          );
+          EOF
+
+  publish:
+    name: Build (${{ matrix.platform }})
+    if: needs.prepare.outputs.should-publish == 'true'
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-22.04
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Synchronize prerelease version
+        run: node scripts/sync-version.mjs "${{ needs.prepare.outputs.version }}"
+
+      - name: Build and publish prerelease
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Gwuma v__VERSION__ (development)
+          releaseBody: |
+            Automated development build from `${{ github.sha }}`.
+
+            This prerelease is unsigned and intended for testing only.
+          releaseDraft: false
+          prerelease: true

@@ -1,0 +1,29 @@
+:root[data-theme="satin"] {
+  --bg: #2c2c34;
+  --surface: #36363f;
+  --surface-secondary: #3f3f4a;
+  --surface-tertiary: #4a4a56;
+  --border: #5a5a68;
+  --border-subtle: #3f3f4a;
+  --text-primary: #f5f0f2;
+  --text-secondary: #c9b8c0;
+  --text-muted: #9c8aa5;
+  --accent: #e8b4bc;
+  --accent-hover: #d49aa4;
+  --accent-soft: #4a3238;
+  --success: #c9a961;
+  --warning: #c9a961;
+  --danger: #6b2c39;
+  --selection: #5a3a42;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --shadow-button: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --on-accent: #2c2c34;
+  --button-secondary: #6b2c39;
+  --on-button-secondary: #ffffff;
+  --on-danger: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --scrollbar: #9c8aa5;
+  --reader-bg: #2c2c34;
+  --reader-text: #f5f0f2;
+  --reader-selection: #5a3a42;
+}

@@ -1,0 +1,31 @@
+/* Semantic color token names — values are defined per theme in /styles/themes */
+
+:root {
+  --bg: transparent;
+  --surface: transparent;
+  --surface-secondary: transparent;
+  --surface-tertiary: transparent;
+  --border: transparent;
+  --border-subtle: transparent;
+  --text-primary: transparent;
+  --text-secondary: transparent;
+  --text-muted: transparent;
+  --accent: transparent;
+  --accent-hover: transparent;
+  --accent-soft: transparent;
+  --success: transparent;
+  --warning: transparent;
+  --danger: transparent;
+  --selection: transparent;
+  --shadow: transparent;
+  --shadow-button: transparent;
+  --on-accent: transparent;
+  --button-secondary: transparent;
+  --on-button-secondary: transparent;
+  --on-danger: transparent;
+  --overlay: transparent;
+  --scrollbar: transparent;
+  --reader-bg: transparent;
+  --reader-text: transparent;
+  --reader-selection: transparent;
+}

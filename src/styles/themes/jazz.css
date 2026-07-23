@@ -1,0 +1,29 @@
+:root[data-theme="jazz"] {
+  --bg: #1b2a4a;
+  --surface: #243456;
+  --surface-secondary: #2c3e5e;
+  --surface-tertiary: #354868;
+  --border: #4a4a52;
+  --border-subtle: #2c3e5e;
+  --text-primary: #f5f2eb;
+  --text-secondary: #c7c2b7;
+  --text-muted: #8d8a92;
+  --accent: #d4af37;
+  --accent-hover: #b8860b;
+  --accent-soft: #3b3420;
+  --success: #9ab86a;
+  --warning: #b8860b;
+  --danger: #8b2635;
+  --selection: #4a3a20;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  --shadow-button: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --on-accent: #1b2a4a;
+  --button-secondary: #0f1a30;
+  --on-button-secondary: #ffffff;
+  --on-danger: #ffffff;
+  --overlay: rgba(10, 16, 32, 0.6);
+  --scrollbar: #4a4a52;
+  --reader-bg: #1b2a4a;
+  --reader-text: #f5f2eb;
+  --reader-selection: #4a3a20;
+}

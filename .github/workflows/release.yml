@@ -1,0 +1,153 @@
+name: Gwuma Stable Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: stable-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Version packages
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    outputs:
+      has-changesets: ${{ steps.changesets.outputs.hasChangesets }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create or update version pull request
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          title: "chore(release): version packages"
+          commit: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  prepare:
+    name: Prepare stable release
+    needs: version
+    if: needs.version.outputs.has-changesets != 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    outputs:
+      should-publish: ${{ steps.release.outputs.should-publish }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check release tag
+        id: release
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="v${version}"
+          should_publish=true
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" > /dev/null 2>&1; then
+            should_publish=false
+            echo "${tag} already exists; skipping stable release."
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "should-publish=$should_publish" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build (${{ matrix.platform }})
+    needs: prepare
+    if: needs.prepare.outputs.should-publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-22.04
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify manifest versions
+        run: node scripts/sync-version.mjs "${{ needs.prepare.outputs.version }}"
+
+      - name: Build and publish stable release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Gwuma v__VERSION__
+          releaseBody: |
+            See `CHANGELOG.md` for the changes included in this release.
+
+            These installers are currently unsigned.
+          releaseDraft: false
+          prerelease: false

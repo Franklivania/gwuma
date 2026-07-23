@@ -1,0 +1,27 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-default);
+  z-index: 10;
+}
+
+.root:hover .tip,
+.root:focus-within .tip {
+  opacity: 1;
+}

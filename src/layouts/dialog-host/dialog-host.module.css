@@ -1,0 +1,20 @@
+.host {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  z-index: var(--dialog-layer, 1);
+}
+
+.actions {
+  margin-top: var(--space-4);
+}

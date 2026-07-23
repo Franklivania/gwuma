@@ -1,0 +1,29 @@
+:root[data-theme="dreamy"] {
+  --bg: #e8e4f0;
+  --surface: #f7f5fb;
+  --surface-secondary: #ddd6eb;
+  --surface-tertiary: #d0c6e4;
+  --border: #c4b8dc;
+  --border-subtle: #ddd6eb;
+  --text-primary: #2a2540;
+  --text-secondary: #5a5270;
+  --text-muted: #8a829c;
+  --accent: #d4a5ff;
+  --accent-hover: #b8a9e0;
+  --accent-soft: #efe8f8;
+  --success: #7ab89a;
+  --warning: #e8c07a;
+  --danger: #f4c2c2;
+  --selection: #a7c7e7;
+  --shadow: 0 1px 3px rgba(42, 37, 64, 0.1);
+  --shadow-button: 0 6px 18px rgba(42, 37, 64, 0.2);
+  --on-accent: #ffffff;
+  --button-secondary: #2a2540;
+  --on-button-secondary: #ffffff;
+  --on-danger: #2a2540;
+  --overlay: rgba(42, 37, 64, 0.4);
+  --scrollbar: #b8a9e0;
+  --reader-bg: #f7f5fb;
+  --reader-text: #2a2540;
+  --reader-selection: #c8dff0;
+}

@@ -1,0 +1,57 @@
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.themeCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  color: var(--text-primary);
+  transition:
+    border-color var(--duration-fast) var(--ease-default),
+    background var(--duration-fast) var(--ease-default);
+}
+
+.themeCard:hover {
+  background: var(--surface-secondary);
+}
+
+.themeActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.themeName {
+  font-weight: var(--weight-semibold);
+}
+
+.section {
+  max-width: 40rem;
+}
+
+.heading {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.description {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}

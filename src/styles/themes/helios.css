@@ -1,0 +1,29 @@
+:root[data-theme="helios"] {
+  --bg: #e8dcc4;
+  --surface: #f7f1e4;
+  --surface-secondary: #ddd0b4;
+  --surface-tertiary: #d2c2a0;
+  --border: #c9b890;
+  --border-subtle: #ddd0b4;
+  --text-primary: #3a2e22;
+  --text-secondary: #6a5848;
+  --text-muted: #9a8570;
+  --accent: #ff6b35;
+  --accent-hover: #e55a28;
+  --accent-soft: #ffe0d4;
+  --success: #6a9e6a;
+  --warning: #ffd23f;
+  --danger: #c1121f;
+  --selection: #f7c548;
+  --shadow: 0 1px 3px rgba(58, 46, 34, 0.12);
+  --shadow-button: 0 6px 18px rgba(58, 46, 34, 0.22);
+  --on-accent: #ffffff;
+  --button-secondary: #3a2e22;
+  --on-button-secondary: #ffffff;
+  --on-danger: #ffffff;
+  --overlay: rgba(58, 46, 34, 0.4);
+  --scrollbar: #c9b890;
+  --reader-bg: #f7f1e4;
+  --reader-text: #3a2e22;
+  --reader-selection: #f5e0a8;
+}

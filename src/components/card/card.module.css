@@ -1,0 +1,11 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: background var(--duration-normal) var(--ease-default);
+}
+
+.card:hover {
+  background: var(--surface-secondary);
+}

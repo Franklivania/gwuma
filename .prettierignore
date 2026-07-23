@@ -1,0 +1,8 @@
+*.md
+/src-tauri
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.changeset
+.github
+.husky
+.vscode
