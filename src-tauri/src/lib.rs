@@ -56,7 +56,7 @@ fn scan_folder(path: String) -> Result<Vec<ScannedBook>, String> {
         });
     }
 
-    books.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+    books.sort_by_key(|a| a.title.to_lowercase());
     Ok(books)
 }
 
