@@ -134,3 +134,68 @@
   background: color-mix(in srgb, #ffb347 18%, transparent);
   mix-blend-mode: multiply;
 }
+
+.enginePane {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5);
+  padding-block-end: calc(var(--space-5) + 3rem);
+}
+
+.engineHost {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.engineHostLoading {
+  pointer-events: none;
+}
+
+.epubHost {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Keep the host laid out and measurable while loading; only block input. */
+.epubHostLoading {
+  pointer-events: none;
+}
+
+.epubHost :global(.epub-container) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.engineStatus {
+  position: absolute;
+  inset-inline: var(--space-5);
+  top: var(--space-5);
+  z-index: 2;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.pageNav {
+  position: absolute;
+  inset-inline: 0;
+  bottom: var(--space-3);
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.pageNav > * {
+  pointer-events: auto;
+}

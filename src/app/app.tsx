@@ -7,8 +7,8 @@ import { Footer } from "@/layouts/footer";
 import { MainContent } from "@/layouts/main-content";
 import { Sidebar } from "@/layouts/sidebar";
 import { useNavigationStore } from "@/stores/navigation.store";
+import { useSettingsStore } from "@/stores/settings.store";
 import type { AppView } from "@/types";
-import { useState } from "react";
 import styles from "./app.module.css";
 
 const VIEW_TITLES: Record<AppView, string> = {
@@ -35,16 +35,16 @@ function CurrentView() {
 }
 
 export function App() {
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const sidebarExpanded = useSettingsStore((state) => state.sidebarExpanded);
+  const toggleSidebarExpanded = useSettingsStore(
+    (state) => state.toggleSidebarExpanded,
+  );
   const currentView = useNavigationStore((state) => state.currentView);
 
   return (
     <div className={styles.root}>
       <div className={styles.body}>
-        <Sidebar
-          expanded={sidebarExpanded}
-          onToggle={() => setSidebarExpanded((value) => !value)}
-        />
+        <Sidebar expanded={sidebarExpanded} onToggle={toggleSidebarExpanded} />
         <MainContent title={VIEW_TITLES[currentView]} className={styles.main}>
           <CurrentView />
         </MainContent>

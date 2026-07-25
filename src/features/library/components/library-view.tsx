@@ -89,6 +89,9 @@ export function LibraryView() {
                     <span className={styles.bookAuthor}>{book.author}</span>
                     <span className={styles.bookFormat}>
                       {book.format.toUpperCase()}
+                      {book.progress > 0
+                        ? ` · ${Math.round(book.progress)}%`
+                        : null}
                     </span>
                   </span>
                 </button>

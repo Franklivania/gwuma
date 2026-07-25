@@ -24,6 +24,11 @@ description = "Allows reading a .txt book file for the text reader."
 commands.allow = ["read_text_file"]
 
 [[permission]]
+identifier = "allow-read-file-bytes"
+description = "Allows reading PDF/EPUB file bytes for the reader engines."
+commands.allow = ["read_file_bytes"]
+
+[[permission]]
 identifier = "allow-open-book"
 description = "Allows opening a book and updating last_opened."
 commands.allow = ["open_book"]
@@ -47,3 +52,23 @@ commands.allow = ["get_setting"]
 identifier = "allow-set-setting"
 description = "Allows writing a setting to SQLite."
 commands.allow = ["set_setting"]
+
+[[permission]]
+identifier = "allow-save-cover-bytes"
+description = "Allows saving a generated book cover image under app data."
+commands.allow = ["save_cover_bytes"]
+
+[[permission]]
+identifier = "allow-list-books-missing-pdf-covers"
+description = "Allows listing PDF books that still need cover thumbnails."
+commands.allow = ["list_books_missing_pdf_covers"]
+
+[[permission]]
+identifier = "allow-load-locations-cache"
+description = "Allows reading cached EPUB locations from app data."
+commands.allow = ["load_locations_cache"]
+
+[[permission]]
+identifier = "allow-save-locations-cache"
+description = "Allows writing cached EPUB locations to app data."
+commands.allow = ["save_locations_cache"]

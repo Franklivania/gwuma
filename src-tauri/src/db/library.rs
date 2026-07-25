@@ -168,6 +168,83 @@ pub fn reconcile_scan(
     Ok(())
 }
 
+pub fn set_book_cover(conn: &Connection, id: &str, cover_path: &str) -> SqlResult<Option<BookRow>> {
+    conn.execute(
+        "UPDATE books SET cover = ?1 WHERE id = ?2",
+        params![cover_path, id],
+    )?;
+    get_book(conn, id)
+}
+
+pub fn set_book_cover_and_author(
+    conn: &Connection,
+    id: &str,
+    cover_path: Option<&str>,
+    author: Option<&str>,
+) -> SqlResult<Option<BookRow>> {
+    match (cover_path, author) {
+        (Some(cover), Some(author)) => {
+            conn.execute(
+                "UPDATE books SET cover = ?1, author = ?2 WHERE id = ?3",
+                params![cover, author, id],
+            )?;
+        }
+        (Some(cover), None) => {
+            conn.execute(
+                "UPDATE books SET cover = ?1 WHERE id = ?2",
+                params![cover, id],
+            )?;
+        }
+        (None, Some(author)) => {
+            conn.execute(
+                "UPDATE books SET author = ?1 WHERE id = ?2",
+                params![author, id],
+            )?;
+        }
+        (None, None) => {}
+    }
+    get_book(conn, id)
+}
+
+/// Books that still need EPUB media enrichment (missing cover and/or Unknown author).
+pub fn list_epubs_needing_media(conn: &Connection) -> SqlResult<Vec<BookRow>> {
+    let sql = format!(
+        "{BOOK_SELECT}
+         WHERE available = 1 AND format = 'epub'
+           AND (cover IS NULL OR cover = '' OR author = 'Unknown' OR author = '')
+         ORDER BY title COLLATE NOCASE ASC"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map([], map_book_row)?;
+    rows.collect()
+}
+
+pub fn list_pdfs_missing_cover(conn: &Connection) -> SqlResult<Vec<BookRow>> {
+    let sql = format!(
+        "{BOOK_SELECT}
+         WHERE available = 1 AND format = 'pdf'
+         ORDER BY title COLLATE NOCASE ASC"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map([], map_book_row)?;
+    let mut out = Vec::new();
+    for row in rows {
+        let book = row?;
+        let needs = match book.cover_url.as_deref() {
+            None | Some("") => true,
+            Some(path) => match std::fs::metadata(path) {
+                // Blank white thumbs are typically ~1–2KB; regenerate those.
+                Ok(meta) => meta.len() < 4096,
+                Err(_) => true,
+            },
+        };
+        if needs {
+            out.push(book);
+        }
+    }
+    Ok(out)
+}
+
 pub fn library_snapshot(conn: &Connection) -> SqlResult<LibrarySnapshot> {
     Ok(LibrarySnapshot {
         folders: list_folders(conn)?,
