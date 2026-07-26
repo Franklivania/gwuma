@@ -7,24 +7,62 @@
   border-right: 1px solid var(--border);
   padding: var(--space-4);
   gap: var(--space-6);
+  overflow: visible;
+  transition: width var(--duration-normal) var(--ease-default);
 }
 
-.brand {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
+.collapsed {
+  width: 4rem;
+  padding-inline: var(--space-2);
+  align-items: center;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-default),
+    color var(--duration-fast) var(--ease-default);
+}
+
+.toggle:hover {
+  background: var(--surface-secondary);
   color: var(--text-primary);
-  letter-spacing: -0.02em;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  width: 100%;
+  overflow: visible;
+}
+
+.tooltipRoot {
+  display: flex;
+  width: 100%;
+}
+
+.tooltipRoot .item {
+  width: 100%;
+}
+
+.itemWrap {
+  width: 100%;
 }
 
 .item {
   display: flex;
   align-items: center;
+  gap: var(--space-4);
   width: 100%;
   border: none;
   background: transparent;
@@ -38,6 +76,12 @@
     color var(--duration-fast) var(--ease-default);
 }
 
+.collapsed .item {
+  justify-content: center;
+  padding-inline: var(--space-2);
+  gap: 0;
+}
+
 .item:hover {
   background: var(--surface-secondary);
   color: var(--text-primary);
@@ -46,4 +90,12 @@
 .active {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.collapsed .label {
+  display: none;
 }

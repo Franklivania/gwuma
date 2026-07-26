@@ -35,6 +35,7 @@
 
 .section {
   max-width: 40rem;
+  padding: var(--space-5);
 }
 
 .heading {

@@ -22,6 +22,7 @@ type ReaderState = {
   setZoom: (zoom: number) => void;
   setSearch: (search: string) => void;
   setToc: (toc: TocItem[]) => void;
+  applyBookState: (book: Book) => void;
 };
 
 export const useReaderStore = create<ReaderState>((set) => ({
@@ -40,4 +41,10 @@ export const useReaderStore = create<ReaderState>((set) => ({
   setZoom: (zoom) => set({ zoom }),
   setSearch: (search) => set({ search }),
   setToc: (toc) => set({ toc }),
+  applyBookState: (book) =>
+    set({
+      currentBook: book,
+      progress: book.progress,
+      position: book.lastPosition ?? null,
+    }),
 }));

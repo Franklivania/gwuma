@@ -3,6 +3,7 @@ import { MainContent } from "@/layouts/main-content";
 import { Sidebar } from "@/layouts/sidebar";
 import { StatusBar } from "@/layouts/status-bar";
 import { useNavigationStore } from "@/stores/navigation.store";
+import { useSettingsStore } from "@/stores/settings.store";
 import type { AppView } from "@/types";
 import type { ReactNode } from "react";
 import styles from "./shell.module.css";
@@ -20,11 +21,15 @@ type ShellProps = {
 
 export function Shell({ children }: ShellProps) {
   const currentView = useNavigationStore((state) => state.currentView);
+  const sidebarExpanded = useSettingsStore((state) => state.sidebarExpanded);
+  const toggleSidebarExpanded = useSettingsStore(
+    (state) => state.toggleSidebarExpanded,
+  );
 
   return (
     <div className={styles.shell}>
       <div className={styles.body}>
-        <Sidebar />
+        <Sidebar expanded={sidebarExpanded} onToggle={toggleSidebarExpanded} />
         <MainContent title={VIEW_TITLES[currentView]}>{children}</MainContent>
       </div>
       <StatusBar />

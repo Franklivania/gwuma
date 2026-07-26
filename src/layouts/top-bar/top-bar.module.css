@@ -1,10 +1,13 @@
 .topBar {
+  width: 100%;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 3rem;
   padding: 0 var(--space-5);
-  background: var(--surface);
+  background: rgba(var(--surface), 0.8);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -12,5 +15,20 @@
 .title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings {
+  color: var(--text-primary);
+}
+
+.refresh {
   color: var(--text-primary);
 }

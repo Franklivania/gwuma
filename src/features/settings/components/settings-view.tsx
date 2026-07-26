@@ -1,4 +1,5 @@
 import { Button } from "@/components/button";
+import { BackButton } from "@/components/back-button";
 import { useDialogStore } from "@/stores/dialog.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { THEME_IDS, THEME_LABELS, type ThemeId } from "@/types";
@@ -11,10 +12,10 @@ export function SettingsView() {
 
   return (
     <div className={styles.section}>
+      <BackButton />
       <h2 className={styles.heading}>Appearance</h2>
       <p className={styles.description}>
-        Themes share the same semantic tokens. Switching only changes variable
-        values.
+        You can change the appearance of the app to your liking here
       </p>
 
       <div className={styles.themeGrid}>
@@ -39,14 +40,6 @@ export function SettingsView() {
       <div className={styles.actions}>
         <Button variant="secondary" onClick={() => open("about")}>
           About Gwuma
-        </Button>
-        <Button
-          variant="plain"
-          onClick={() =>
-            open("confirm", { payload: { message: "Demo confirm dialog." } })
-          }
-        >
-          Open confirm dialog
         </Button>
       </div>
     </div>

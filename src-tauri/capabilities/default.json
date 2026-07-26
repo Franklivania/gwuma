@@ -5,6 +5,22 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "dialog:default",
+    "allow-list-folders",
+    "allow-add-folder",
+    "allow-remove-folder",
+    "allow-refresh-library",
+    "allow-read-text-file",
+    "allow-read-file-bytes",
+    "allow-open-book",
+    "allow-save-reading-state",
+    "allow-set-book-favourite",
+    "allow-get-setting",
+    "allow-set-setting",
+    "allow-save-cover-bytes",
+    "allow-list-books-missing-pdf-covers",
+    "allow-load-locations-cache",
+    "allow-save-locations-cache"
   ]
 }

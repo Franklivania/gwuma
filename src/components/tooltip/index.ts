@@ -1,2 +1,2 @@
 export { Tooltip } from "./tooltip";
-export type { TooltipProps } from "./tooltip.types";
+export type { TooltipProps, TooltipSide } from "./tooltip.types";
