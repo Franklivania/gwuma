@@ -136,7 +136,8 @@ src-tauri/
 ## Release channels
 
 - **Development:** changes on `dev` with a pending Changeset produce
-  `-dev.<run>.<sha>` GitHub prereleases.
+  `-<run>` GitHub prereleases (numeric suffix for Windows MSI compatibility;
+  commit SHA is recorded in the release body).
 - **Stable:** Changesets maintains a version PR on `main`. Merging that PR
   publishes a stable GitHub Release if the version tag does not already exist.
 - Native artifacts are built for Windows and Linux. Releases are currently
