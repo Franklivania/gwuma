@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "gwuma",
+  "productName": "Gwuma",
   "version": "0.1.0",
   "identifier": "com.franklivania.gwuma",
   "build": {
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "gwuma",
+        "title": "Gwuma",
         "width": 800,
         "height": 600
       }
