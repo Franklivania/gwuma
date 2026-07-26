@@ -28,6 +28,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch main for Changesets
+        run: git fetch origin main:main
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
         with:
