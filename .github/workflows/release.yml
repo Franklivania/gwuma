@@ -142,6 +142,7 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
         with:
           tagName: v__VERSION__
           releaseName: Gwuma v__VERSION__
