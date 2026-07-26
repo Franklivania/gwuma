@@ -26,5 +26,9 @@ dist-ssr
 *.sw?
 PRD.md
 PR.md
+<<<<<<< HEAD
 GUIDES.md
 /docs
+=======
+GUIDES.md
+>>>>>>> 880a9b71b193789abc4f9cf4b05129d17eda4db6
