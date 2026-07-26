@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Gwuma",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.franklivania.gwuma",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -22,7 +22,10 @@
       "csp": "default-src 'self' ipc: http://ipc.localhost blob: data:; connect-src 'self' ipc: http://ipc.localhost blob:; child-src 'self' blob:; frame-src 'self' blob:; img-src 'self' asset: http://asset.localhost https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob:",
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/covers/**", "$APPDATA/**"]
+        "scope": [
+          "$APPDATA/covers/**",
+          "$APPDATA/**"
+        ]
       }
     }
   },
