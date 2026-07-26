@@ -21,6 +21,7 @@ type SettingsState = {
   scrollSpeedPreset: ScrollSpeedPreset;
   readerBackground: ReaderBackground;
   nightLight: boolean;
+  sidebarExpanded: boolean;
   hydrated: boolean;
   hydrate: () => Promise<void>;
   setTheme: (theme: ThemeId) => void;
@@ -31,6 +32,8 @@ type SettingsState = {
   setScrollSpeedCustom: (scrollSpeed: number) => void;
   setReaderBackground: (readerBackground: ReaderBackground) => void;
   setNightLight: (nightLight: boolean) => void;
+  setSidebarExpanded: (sidebarExpanded: boolean) => void;
+  toggleSidebarExpanded: () => void;
 };
 
 function parseTheme(value: string | null): ThemeId | null {
@@ -71,6 +74,11 @@ function parseNightLight(value: string | null): boolean {
   return value === "true" || value === "1";
 }
 
+function parseSidebarExpanded(value: string | null): boolean {
+  if (value === null) return true;
+  return value !== "false" && value !== "0";
+}
+
 function persist(key: string, value: string) {
   void setSetting(key, value).catch((error) => {
     console.error(`Failed to save setting ${key}`, error);
@@ -86,19 +94,28 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   scrollSpeedPreset: 80,
   readerBackground: "theme",
   nightLight: false,
+  sidebarExpanded: true,
   hydrated: false,
 
   hydrate: async () => {
     try {
-      const [themeRaw, modeRaw, speedRaw, presetRaw, bgRaw, nightRaw] =
-        await Promise.all([
-          getSetting("theme"),
-          getSetting("readingMode"),
-          getSetting("scrollSpeed"),
-          getSetting("scrollSpeedPreset"),
-          getSetting("readerBackground"),
-          getSetting("nightLight"),
-        ]);
+      const [
+        themeRaw,
+        modeRaw,
+        speedRaw,
+        presetRaw,
+        bgRaw,
+        nightRaw,
+        sidebarRaw,
+      ] = await Promise.all([
+        getSetting("theme"),
+        getSetting("readingMode"),
+        getSetting("scrollSpeed"),
+        getSetting("scrollSpeedPreset"),
+        getSetting("readerBackground"),
+        getSetting("nightLight"),
+        getSetting("sidebarExpanded"),
+      ]);
 
       const scrollSpeedPreset = parseScrollSpeedPreset(presetRaw);
       const scrollSpeed =
@@ -113,6 +130,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         scrollSpeedPreset,
         readerBackground: parseReaderBackground(bgRaw),
         nightLight: parseNightLight(nightRaw),
+        sidebarExpanded: parseSidebarExpanded(sidebarRaw),
         hydrated: true,
       });
     } catch (error) {
@@ -162,5 +180,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setNightLight: (nightLight) => {
     set({ nightLight });
     persist("nightLight", nightLight ? "true" : "false");
+  },
+
+  setSidebarExpanded: (sidebarExpanded) => {
+    set({ sidebarExpanded });
+    persist("sidebarExpanded", sidebarExpanded ? "true" : "false");
+  },
+
+  toggleSidebarExpanded: () => {
+    const sidebarExpanded = !get().sidebarExpanded;
+    set({ sidebarExpanded });
+    persist("sidebarExpanded", sidebarExpanded ? "true" : "false");
   },
 }));

@@ -1,4 +1,5 @@
 mod db;
+mod media;
 
 use db::models::{BookRow, FolderRow, LibrarySnapshot, ScannedBook};
 use db::{library, reading, settings};
@@ -72,6 +73,62 @@ fn with_db<T>(
     f(&conn)
 }
 
+fn app_data_subdir(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {e}"))?
+        .join(name);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+fn enrich_epub_media(conn: &Connection, covers_dir: &Path) -> Result<(), String> {
+    let books = library::list_epubs_needing_media(conn).map_err(|e| e.to_string())?;
+    for book in books {
+        let meta = match media::epub::extract_epub_meta(Path::new(&book.path)) {
+            Ok(meta) => meta,
+            Err(err) => {
+                eprintln!("EPUB media extract failed for {}: {err}", book.path);
+                continue;
+            }
+        };
+
+        let mut cover_path: Option<String> = None;
+        if book
+            .cover_url
+            .as_ref()
+            .map(|c| c.is_empty())
+            .unwrap_or(true)
+        {
+            if let (Some(bytes), Some(ext)) = (meta.cover_bytes, meta.cover_ext) {
+                match media::epub::write_cover_file(covers_dir, &book.id, &bytes, &ext) {
+                    Ok(path) => cover_path = Some(path.to_string_lossy().into_owned()),
+                    Err(err) => eprintln!("Failed writing cover for {}: {err}", book.id),
+                }
+            }
+        }
+
+        let author = meta.author.filter(|a| !a.trim().is_empty());
+        let author_update = if book.author == "Unknown" || book.author.is_empty() {
+            author.as_deref()
+        } else {
+            None
+        };
+
+        if cover_path.is_some() || author_update.is_some() {
+            library::set_book_cover_and_author(
+                conn,
+                &book.id,
+                cover_path.as_deref(),
+                author_update,
+            )
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn list_folders(state: State<'_, AppState>) -> Result<Vec<FolderRow>, String> {
     with_db(&state, |conn| {
@@ -94,7 +151,8 @@ fn remove_folder(id: String, state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn refresh_library(state: State<'_, AppState>) -> Result<LibrarySnapshot, String> {
+fn refresh_library(app: AppHandle, state: State<'_, AppState>) -> Result<LibrarySnapshot, String> {
+    let covers_dir = app_data_subdir(&app, "covers")?;
     with_db(&state, |conn| {
         let folders = library::list_folders(conn).map_err(|e| e.to_string())?;
 
@@ -103,6 +161,7 @@ fn refresh_library(state: State<'_, AppState>) -> Result<LibrarySnapshot, String
             library::reconcile_scan(conn, &folder.id, &scanned).map_err(|e| e.to_string())?;
         }
 
+        enrich_epub_media(conn, &covers_dir)?;
         library::library_snapshot(conn).map_err(|e| e.to_string())
     })
 }
@@ -119,6 +178,19 @@ fn read_text_file(path: String) -> Result<String, String> {
 
     let bytes = std::fs::read(&file_path).map_err(|e| e.to_string())?;
     Ok(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+#[tauri::command]
+fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    let file_path = PathBuf::from(&path);
+    let Some(format) = book_format(&file_path) else {
+        return Err("Unsupported book format".into());
+    };
+    if format != "pdf" && format != "epub" {
+        return Err("read_file_bytes is for PDF and EPUB files".into());
+    }
+
+    std::fs::read(&file_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -171,6 +243,52 @@ fn set_setting(key: String, value: String, state: State<'_, AppState>) -> Result
     })
 }
 
+#[tauri::command]
+fn save_cover_bytes(
+    id: String,
+    bytes: Vec<u8>,
+    ext: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<BookRow, String> {
+    if bytes.is_empty() {
+        return Err("Cover bytes are empty".into());
+    }
+    let covers_dir = app_data_subdir(&app, "covers")?;
+    let path = media::epub::write_cover_file(&covers_dir, &id, &bytes, &ext)?;
+    let path_str = path.to_string_lossy().into_owned();
+    with_db(&state, |conn| {
+        library::set_book_cover(conn, &id, &path_str)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Book not found: {id}"))
+    })
+}
+
+#[tauri::command]
+fn list_books_missing_pdf_covers(state: State<'_, AppState>) -> Result<Vec<BookRow>, String> {
+    with_db(&state, |conn| {
+        library::list_pdfs_missing_cover(conn).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn load_locations_cache(id: String, app: AppHandle) -> Result<Option<String>, String> {
+    let dir = app_data_subdir(&app, "locations")?;
+    let path = dir.join(format!("{id}.json"));
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let data = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    Ok(Some(data))
+}
+
+#[tauri::command]
+fn save_locations_cache(id: String, data: String, app: AppHandle) -> Result<(), String> {
+    let dir = app_data_subdir(&app, "locations")?;
+    let path = dir.join(format!("{id}.json"));
+    std::fs::write(path, data).map_err(|e| e.to_string())
+}
+
 fn init_database(app: &AppHandle) -> Result<Connection, String> {
     let dir = app
         .path()
@@ -186,6 +304,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            let _ = app_data_subdir(app.handle(), "covers");
+            let _ = app_data_subdir(app.handle(), "locations");
             let conn = init_database(app.handle())?;
             app.manage(AppState {
                 db: Mutex::new(conn),
@@ -198,11 +318,16 @@ pub fn run() {
             remove_folder,
             refresh_library,
             read_text_file,
+            read_file_bytes,
             open_book,
             save_reading_state,
             set_book_favourite,
             get_setting,
             set_setting,
+            save_cover_bytes,
+            list_books_missing_pdf_covers,
+            load_locations_cache,
+            save_locations_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

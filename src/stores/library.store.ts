@@ -4,6 +4,7 @@ import {
   pickFolder,
   refreshLibrary,
 } from "@/features/library/services/library-service";
+import { enrichPdfCovers } from "@/features/library/services/pdf-covers";
 import type {
   Book,
   Folder,
@@ -93,6 +94,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         }
         doneIdleTimer = null;
       }, 2000);
+
+      void enrichPdfCovers((book) => {
+        get().upsertBook(book);
+      });
     } catch (error) {
       console.error("Failed to refresh library", error);
       set({ activity: "idle", activityDetail: null });
