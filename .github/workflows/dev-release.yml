@@ -85,11 +85,21 @@ jobs:
             throw new Error("Changesets did not calculate a release for gwuma");
           }
 
-          const shortSha = process.env.COMMIT_SHA.slice(0, 7);
-          const version =
-            `${release.newVersion}-dev.${process.env.RUN_NUMBER}.${shortSha}`;
+          // MSI/WiX allows only a numeric prerelease id (≤ 65535). Keep the
+          // commit SHA in the GitHub release body instead of the version string.
+          const runNumber = Number(process.env.RUN_NUMBER);
+          if (!Number.isInteger(runNumber) || runNumber < 1 || runNumber > 65535) {
+            throw new Error(
+              `MSI-safe prerelease run number out of range: ${process.env.RUN_NUMBER}`,
+            );
+          }
 
-          process.stdout.write(`Preparing Gwuma ${version}\n`);
+          const shortSha = process.env.COMMIT_SHA.slice(0, 7);
+          const version = `${release.newVersion}-${runNumber}`;
+
+          process.stdout.write(
+            `Preparing Gwuma ${version} (commit ${shortSha})\n`,
+          );
           const output = process.env.GITHUB_OUTPUT;
           await import("node:fs/promises").then(({ appendFile }) =>
             appendFile(output, `version=${version}\n`),
@@ -159,6 +169,8 @@ jobs:
           releaseBody: |
             Automated development build from `${{ github.sha }}`.
 
-            This prerelease is unsigned and intended for testing only.
+            App version uses a numeric prerelease suffix (`-<run>`) so Windows
+            MSI/WiX can bundle it. This prerelease is unsigned and intended for
+            testing only.
           releaseDraft: false
           prerelease: true
