@@ -1,7 +1,20 @@
 # Gwuma
 
 <p align="center">
+  <img alt="Gwuma" src="https://res.cloudinary.com/dgtoh3s2a/image/upload/v1785174279/gwuma-logo_vmoc6p.png" width="128">
+</p>
+
+<p align="center">
   <strong>Your books. Your folders. Your reading.</strong>
+</p>
+
+<p align="center">
+  <a href="https://gwuma.chibuzo.com.ng"><img alt="Website" src="https://img.shields.io/badge/website-gwuma.chibuzo.com.ng-FF6B53"></a>
+  <a href="https://gwuma.chibuzo.com.ng/download"><img alt="Download" src="https://img.shields.io/badge/download-Windows%20%26%20Linux-0078D4?logo=windows11&logoColor=white"></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-stable-63B67A">
+  <a href="https://github.com/Franklivania/gwuma/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Franklivania/gwuma?label=release"></a>
+  <img alt="Stable" src="https://img.shields.io/badge/channel-stable-24C8DB">
+  <a href="https://github.com/Franklivania/gwuma/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Franklivania/gwuma/total"></a>
 </p>
 
 <p align="center">
@@ -17,15 +30,16 @@
   <img alt="Offline first" src="https://img.shields.io/badge/offline--first-yes-63B67A">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-supported-0078D4?logo=windows11&logoColor=white">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-supported-FCC624?logo=linux&logoColor=black">
+  <img alt="Formats" src="https://img.shields.io/badge/formats-TXT%20%7C%20PDF%20%7C%20EPUB-8A2BE2">
 </p>
 
-Gwuma is an offline-first desktop reading application for personal digital
-libraries. It indexes books where they already live, remembers reading
-progress locally, and keeps the reading experience free from accounts, cloud
-sync, and uploads.
+Gwuma is a lightweight, free offline ebook reader for personal digital
+libraries. It scans local folders for TXT, PDF, and EPUB books, remembers
+reading progress between sessions, and keeps the experience free from accounts,
+cloud sync, and uploads.
 
-> Gwuma is in active development. The application foundation and design system
-> are in place; library indexing and book readers are not yet complete.
+**Website:** [gwuma.chibuzo.com.ng](https://gwuma.chibuzo.com.ng) ·
+**Download:** [Windows & Linux installers](https://gwuma.chibuzo.com.ng/download)
 
 ## Principles
 
@@ -37,17 +51,16 @@ sync, and uploads.
 - **Semantic design** — components consume design tokens rather than literal
   colors.
 
-## Current foundation
+## What’s included
 
-- Tauri 2 desktop shell with React 19 and TypeScript.
-- Feature-first frontend architecture.
-- Independent Zustand stores for navigation, dialogs, library, reader,
-  settings, and statistics.
-- Stack-based navigation and layered dialogs.
-- Reusable, domain-agnostic components styled with CSS Modules.
+- Folder scanning for TXT, PDF, and EPUB with local SQLite metadata.
+- Offline readers with progress saved between sessions.
+- Library covers and reading progress on book cards.
+- Scroll or paginate, with scroll speed, background, and night light.
 - Dreamy, Satin, Jazz, Helios, and Vibrant themes.
-- Global Figtree typography and semantic spacing, radius, motion, and color
-  tokens.
+- Lightweight desktop shell with a collapsible sidebar.
+- Tauri 2 desktop shell with React 19 and TypeScript.
+- Feature-first frontend architecture and independent Zustand stores.
 - Windows and Linux release automation through GitHub Releases.
 
 ## Technology
