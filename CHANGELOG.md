@@ -1,5 +1,11 @@
 # gwuma
 
+## 1.1.0
+
+### Minor Changes
+
+- 5c7f11b: Add reading statistics with weekly charts and period compare, global search with in-book phrases, recently read and bookmarks, folder sidebar, and macOS release builds.
+
 ## 1.0.0
 
 ### Major Changes
