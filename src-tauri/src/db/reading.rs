@@ -1,15 +1,22 @@
 use super::library::get_book;
 use super::models::BookRow;
+use super::statistics;
 use chrono::Utc;
 use rusqlite::{params, Connection, Result as SqlResult};
 
-pub fn open_book(conn: &Connection, id: &str) -> SqlResult<Option<BookRow>> {
+pub fn open_book(conn: &Connection, id: &str) -> SqlResult<Option<(BookRow, String)>> {
     let now = Utc::now().to_rfc3339();
     conn.execute(
         "UPDATE books SET last_opened = ?1 WHERE id = ?2",
         params![now, id],
     )?;
-    get_book(conn, id)
+    let book = match get_book(conn, id)? {
+        Some(book) => book,
+        None => return Ok(None),
+    };
+
+    let session_id = statistics::record_book_open(conn, &book.id, &book.title, &book.author)?;
+    Ok(Some((book, session_id)))
 }
 
 pub fn save_reading_state(
@@ -40,7 +47,15 @@ pub fn save_reading_state(
         params![progress, last_position, status, completed_at, id],
     )?;
 
-    get_book(conn, id)
+    let book = get_book(conn, id)?;
+    if let Some(ref book) = book {
+        if status == "completed" {
+            statistics::mark_book_finished(conn, &book.id, &book.title, &book.author)?;
+        } else {
+            statistics::upsert_book_stats_snapshot(conn, &book.id, &book.title, &book.author)?;
+        }
+    }
+    Ok(book)
 }
 
 pub fn set_book_favourite(

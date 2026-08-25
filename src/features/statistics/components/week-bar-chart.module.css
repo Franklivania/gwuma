@@ -1,0 +1,89 @@
+.root {
+  width: 100%;
+  min-height: 11rem;
+}
+
+.plot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: var(--space-2);
+  height: 11rem;
+}
+
+.grid {
+  position: absolute;
+  left: 2.5rem;
+  right: 0;
+  top: 0;
+  bottom: 1.5rem;
+  pointer-events: none;
+}
+
+.majorLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+}
+
+.minorLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.yLabels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 1.5rem;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-1);
+  height: 100%;
+  padding-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.barCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.barTrack {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+}
+
+.bar {
+  width: 70%;
+  max-width: 1.75rem;
+  min-height: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height var(--duration-normal) var(--ease-default);
+}
+
+.dayLabel {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1;
+}

@@ -55,12 +55,15 @@ cloud sync, and uploads.
 
 - Folder scanning for TXT, PDF, and EPUB with local SQLite metadata.
 - Offline readers with progress saved between sessions.
+- Reading statistics (time + books activity rings) and durable book stats.
+- Recently read strip, bookmarks, and folder sidebar with search (`Ctrl/⌘K`).
 - Library covers and reading progress on book cards.
 - Scroll or paginate, with scroll speed, background, and night light.
 - Dreamy, Satin, Jazz, Helios, and Vibrant themes.
 - Lightweight desktop shell with a collapsible sidebar.
 - Tauri 2 desktop shell with React 19 and TypeScript.
 - Feature-first frontend architecture and independent Zustand stores.
+- Windows, Linux, and macOS packaging (see [docs/MAC_BUILD.md](docs/MAC_BUILD.md)).
 - Windows and Linux release automation through GitHub Releases.
 
 ## Technology

@@ -75,11 +75,16 @@ export async function refreshLibrary(): Promise<LibrarySnapshot> {
   return normalizeSnapshot(snapshot);
 }
 
-export async function openBook(id: string): Promise<Book> {
-  const book = await invoke<Book>("open_book", { id });
-  const normalized = normalizeBook(book);
-  if (!normalized) throw new Error(`Unsupported book format: ${book.format}`);
-  return normalized;
+export async function openBook(
+  id: string,
+): Promise<{ book: Book; sessionId: string }> {
+  const result = await invoke<{ book: Book; sessionId: string }>("open_book", {
+    id,
+  });
+  const normalized = normalizeBook(result.book);
+  if (!normalized)
+    throw new Error(`Unsupported book format: ${result.book.format}`);
+  return { book: normalized, sessionId: result.sessionId };
 }
 
 export async function saveReadingState(
