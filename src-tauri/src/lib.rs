@@ -2,8 +2,10 @@ mod db;
 mod media;
 
 use db::models::{BookRow, FolderRow, LibrarySnapshot, ScannedBook};
-use db::{library, reading, settings};
+use db::statistics::{BookStatsRow, SearchHit, StatisticsSummary};
+use db::{library, reading, settings, statistics};
 use rusqlite::Connection;
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
@@ -11,6 +13,20 @@ use walkdir::WalkDir;
 
 pub struct AppState {
     pub db: Mutex<Connection>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenBookResult {
+    book: BookRow,
+    session_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct IndexStatus {
+    indexed: bool,
+    needs_frontend_chunks: bool,
 }
 
 fn book_format(path: &Path) -> Option<&'static str> {
@@ -194,11 +210,12 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
-fn open_book(id: String, state: State<'_, AppState>) -> Result<BookRow, String> {
+fn open_book(id: String, state: State<'_, AppState>) -> Result<OpenBookResult, String> {
     with_db(&state, |conn| {
-        reading::open_book(conn, &id)
+        let (book, session_id) = reading::open_book(conn, &id)
             .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("Book not found: {id}"))
+            .ok_or_else(|| format!("Book not found: {id}"))?;
+        Ok(OpenBookResult { book, session_id })
     })
 }
 
@@ -213,6 +230,114 @@ fn save_reading_state(
         reading::save_reading_state(conn, &id, progress, last_position.as_deref())
             .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("Book not found: {id}"))
+    })
+}
+
+#[tauri::command]
+fn ping_reading_session(session_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    with_db(&state, |conn| {
+        statistics::ping_reading_session(conn, &session_id).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn end_reading_session(session_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    with_db(&state, |conn| {
+        statistics::end_reading_session(conn, &session_id).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn get_statistics_summary(
+    period: String,
+    state: State<'_, AppState>,
+) -> Result<StatisticsSummary, String> {
+    with_db(&state, |conn| {
+        statistics::get_statistics_summary(conn, &period).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn list_book_stats(
+    period: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<BookStatsRow>, String> {
+    with_db(&state, |conn| {
+        statistics::list_book_stats(conn, period.as_deref()).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn search_library(
+    query: String,
+    limit: Option<i64>,
+    state: State<'_, AppState>,
+) -> Result<Vec<SearchHit>, String> {
+    with_db(&state, |conn| {
+        statistics::search_library(conn, &query, limit.unwrap_or(20)).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn ensure_book_indexed(id: String, state: State<'_, AppState>) -> Result<IndexStatus, String> {
+    with_db(&state, |conn| {
+        if statistics::is_book_indexed(conn, &id).map_err(|e| e.to_string())? {
+            return Ok(IndexStatus {
+                indexed: true,
+                needs_frontend_chunks: false,
+            });
+        }
+
+        let book = library::get_book(conn, &id)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Book not found: {id}"))?;
+
+        match book.format.as_str() {
+            "txt" => {
+                let chunks = media::text_index::extract_txt_chunks(Path::new(&book.path))?;
+                let refs: Vec<(i64, &str)> = chunks.iter().map(|(i, t)| (*i, t.as_str())).collect();
+                statistics::replace_book_text_chunks(conn, &id, &refs)
+                    .map_err(|e| e.to_string())?;
+                Ok(IndexStatus {
+                    indexed: true,
+                    needs_frontend_chunks: false,
+                })
+            }
+            "epub" => {
+                let chunks = media::text_index::extract_epub_chunks(Path::new(&book.path))?;
+                let refs: Vec<(i64, &str)> = chunks.iter().map(|(i, t)| (*i, t.as_str())).collect();
+                statistics::replace_book_text_chunks(conn, &id, &refs)
+                    .map_err(|e| e.to_string())?;
+                Ok(IndexStatus {
+                    indexed: true,
+                    needs_frontend_chunks: false,
+                })
+            }
+            "pdf" => Ok(IndexStatus {
+                indexed: false,
+                needs_frontend_chunks: true,
+            }),
+            _ => Ok(IndexStatus {
+                indexed: false,
+                needs_frontend_chunks: false,
+            }),
+        }
+    })
+}
+
+#[tauri::command]
+fn upsert_book_text_chunks(
+    id: String,
+    chunks: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    with_db(&state, |conn| {
+        let refs: Vec<(i64, &str)> = chunks
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (i as i64, t.as_str()))
+            .collect();
+        statistics::replace_book_text_chunks(conn, &id, &refs).map_err(|e| e.to_string())
     })
 }
 
@@ -321,6 +446,13 @@ pub fn run() {
             read_file_bytes,
             open_book,
             save_reading_state,
+            ping_reading_session,
+            end_reading_session,
+            get_statistics_summary,
+            list_book_stats,
+            search_library,
+            ensure_book_indexed,
+            upsert_book_text_chunks,
             set_book_favourite,
             get_setting,
             set_setting,
