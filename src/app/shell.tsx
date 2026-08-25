@@ -13,6 +13,7 @@ const VIEW_TITLES: Record<AppView, string> = {
   reader: "Reader",
   settings: "Settings",
   statistics: "Statistics",
+  bookmarks: "Bookmarks",
 };
 
 type ShellProps = {

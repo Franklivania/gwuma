@@ -8,10 +8,16 @@ import {
   TxtReaderPane,
   type ReaderPaneHandle,
 } from "@/features/reader/components/txt-reader-pane";
+import { indexBookForSearch } from "@/features/reader/engines/search-index";
 import { saveReadingState } from "@/features/library/services/library-service";
+import {
+  endReadingSession,
+  pingReadingSession,
+} from "@/features/statistics/services/statistics-service";
 import { useLibraryStore } from "@/stores/library.store";
 import { useReaderStore } from "@/stores/reader.store";
 import { useReadingFuncStore } from "@/stores/reading-func.store";
+import { useReadingSessionStore } from "@/stores/reading-session.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { PreferenceHorizontalIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,6 +31,8 @@ export function ReaderView() {
   const setProgress = useReaderStore((state) => state.setProgress);
   const setPosition = useReaderStore((state) => state.setPosition);
   const upsertBook = useLibraryStore((state) => state.upsertBook);
+  const sessionId = useReadingSessionStore((state) => state.sessionId);
+  const setSessionId = useReadingSessionStore((state) => state.setSessionId);
   const chromeVisible = useReadingFuncStore((state) => state.chromeVisible);
   const preferencesOpen = useReadingFuncStore((state) => state.preferencesOpen);
   const showChrome = useReadingFuncStore((state) => state.showChrome);
@@ -48,8 +56,10 @@ export function ReaderView() {
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
   const progressRef = useRef(progress);
   const positionRef = useRef<string | null>(useReaderStore.getState().position);
+  const sessionIdRef = useRef(sessionId);
 
   progressRef.current = progress;
+  sessionIdRef.current = sessionId;
 
   function markScrolling() {
     scrollingRef.current = true;
@@ -73,6 +83,52 @@ export function ReaderView() {
   useEffect(() => {
     positionRef.current = useReaderStore.getState().position;
   }, [currentBook?.id]);
+
+  useEffect(() => {
+    if (!currentBook) return;
+    void indexBookForSearch(
+      currentBook.id,
+      currentBook.format,
+      currentBook.path,
+    );
+  }, [currentBook?.id, currentBook?.format, currentBook?.path]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const tick = () => {
+      void pingReadingSession(sessionId).catch((err) => {
+        console.error("Failed to ping reading session", err);
+      });
+    };
+
+    tick();
+    const interval = setInterval(tick, 30_000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        void pingReadingSession(sessionId).catch(() => undefined);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [sessionId]);
+
+  useEffect(() => {
+    return () => {
+      const active = sessionIdRef.current;
+      if (!active) return;
+      void endReadingSession(active)
+        .catch((err) => console.error("Failed to end reading session", err))
+        .finally(() => {
+          useReadingSessionStore.getState().setSessionId(null);
+        });
+    };
+  }, []);
 
   const persistState = useCallback(
     async (nextProgress: number, nextPosition: string | null) => {
@@ -153,6 +209,15 @@ export function ReaderView() {
       const panePosition =
         paneRef.current?.getPosition() ?? positionRef.current;
       await persistState(paneProgress, panePosition);
+    }
+    const active = sessionIdRef.current;
+    if (active) {
+      try {
+        await endReadingSession(active);
+      } catch (err) {
+        console.error("Failed to end reading session", err);
+      }
+      setSessionId(null);
     }
     closePreferences();
     resetChrome();

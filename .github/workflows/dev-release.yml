@@ -116,6 +116,7 @@ jobs:
         platform:
           - ubuntu-22.04
           - windows-latest
+          - macos-latest
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 45
 

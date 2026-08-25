@@ -16,3 +16,13 @@ export type {
   LibrarySnapshot,
 } from "./library";
 export { SCROLL_SPEED_NOTCHES } from "./library";
+export type {
+  StatsPeriod,
+  RingMetric,
+  WeekDayStat,
+  ActivityCardSummary,
+  StatisticsSummary,
+  BookStats,
+  SearchHit,
+  IndexStatus,
+} from "./statistics";

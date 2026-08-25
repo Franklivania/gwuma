@@ -1,5 +1,6 @@
-import { LibraryView } from "@/features/library/components";
+import { BookmarksView, LibraryView } from "@/features/library/components";
 import { ReaderView } from "@/features/reader/components";
+import { SearchOverlay } from "@/features/search/components/search-overlay";
 import { SettingsView } from "@/features/settings/components";
 import { StatisticsView } from "@/features/statistics/components";
 import { DialogHost } from "@/layouts/dialog-host";
@@ -16,6 +17,7 @@ const VIEW_TITLES: Record<AppView, string> = {
   reader: "Reader",
   settings: "Settings",
   statistics: "Statistics",
+  bookmarks: "Bookmarks",
 };
 
 function CurrentView() {
@@ -28,6 +30,8 @@ function CurrentView() {
       return <StatisticsView />;
     case "reader":
       return <ReaderView />;
+    case "bookmarks":
+      return <BookmarksView />;
     case "library":
     default:
       return <LibraryView />;
@@ -51,6 +55,7 @@ export function App() {
       </div>
       <Footer />
       <DialogHost />
+      <SearchOverlay />
     </div>
   );
 }
