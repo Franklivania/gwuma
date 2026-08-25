@@ -1,7 +1,7 @@
 {
   "name": "gwuma",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "author": "Chibuzo Franklin Odigbo <cfaodigbo@gmail.com>",
   "license": "MIT",
