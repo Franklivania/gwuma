@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import styles from "./book-cover.module.css";
 import type { BookCoverProps } from "./book-cover.types";
 
-export function BookCover({ title, src, size = "md" }: BookCoverProps) {
+export function BookCover({
+  title,
+  src,
+  size = "md",
+  lazy = false,
+}: BookCoverProps) {
   const [failed, setFailed] = useState(false);
   const classes = [styles.cover, styles[size]].join(" ");
 
@@ -17,6 +22,8 @@ export function BookCover({ title, src, size = "md" }: BookCoverProps) {
           className={styles.image}
           src={src}
           alt={title}
+          loading={lazy ? "lazy" : undefined}
+          decoding="async"
           onError={() => setFailed(true)}
         />
       </div>

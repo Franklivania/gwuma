@@ -12,6 +12,8 @@
         "allow-list-folders",
         "allow-add-folder",
         "allow-remove-folder",
+        "allow-add-books",
+        "allow-remove-book",
         "allow-refresh-library",
         "allow-read-text-file",
         "allow-read-file-bytes",

@@ -42,6 +42,9 @@ function withTimeout<T>(
   });
 }
 
+const RESIZE_DEBOUNCE_MS = 120;
+const LOCATIONS_IDLE_DELAY_MS = 1000;
+
 export class EpubEngine implements ReaderEngine {
   private book: Book | null = null;
   private rendition: Rendition | null = null;
@@ -55,8 +58,12 @@ export class EpubEngine implements ReaderEngine {
   private locationsToken = 0;
   /** Bumped on close/teardown so in-flight open() aborts cleanly. */
   private openGeneration = 0;
+  private resizeObserver: ResizeObserver | null = null;
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private locationsTimer: ReturnType<typeof setTimeout> | null = null;
 
   bind(container: HTMLElement, onChange?: () => void) {
+    this.teardownResizeObserver();
     this.container = container;
     this.onChange = onChange ?? null;
   }
@@ -114,17 +121,20 @@ export class EpubEngine implements ReaderEngine {
       this.rendition.resize(measuredW, measuredH);
     }
 
+    this.attachResizeObserver();
     this.applyTheme();
     this.syncFromRendition();
 
-    // Ready for reading — locations run in the background.
-    void this.ensureLocations(generation);
+    // Defer locations so first paint / resize stay responsive.
+    this.scheduleLocations(generation);
   }
 
   async close(): Promise<void> {
     this.openGeneration += 1;
     this.locationsToken += 1;
+    this.clearLocationsTimer();
     this.onChange = null;
+    this.teardownResizeObserver();
     this.teardownBook();
     this.container = null;
     this.position = "";
@@ -301,6 +311,59 @@ export class EpubEngine implements ReaderEngine {
     if (location) this.applyLocation(location);
   }
 
+  private attachResizeObserver() {
+    this.teardownResizeObserver();
+    const container = this.container;
+    if (!container) return;
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.resizeTimer) clearTimeout(this.resizeTimer);
+      this.resizeTimer = setTimeout(() => {
+        this.resizeTimer = null;
+        this.resizeToContainer();
+      }, RESIZE_DEBOUNCE_MS);
+    });
+    this.resizeObserver.observe(container);
+  }
+
+  private resizeToContainer() {
+    const container = this.container;
+    const rendition = this.rendition;
+    if (!container || !rendition) return;
+    const width = Math.floor(container.clientWidth);
+    const height = Math.floor(container.clientHeight);
+    if (width <= 0 || height <= 0) return;
+    try {
+      rendition.resize(width, height);
+    } catch {
+      // ignore resize races during teardown
+    }
+  }
+
+  private teardownResizeObserver() {
+    if (this.resizeTimer) {
+      clearTimeout(this.resizeTimer);
+      this.resizeTimer = null;
+    }
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+  }
+
+  private clearLocationsTimer() {
+    if (this.locationsTimer) {
+      clearTimeout(this.locationsTimer);
+      this.locationsTimer = null;
+    }
+  }
+
+  private scheduleLocations(generation: number) {
+    this.clearLocationsTimer();
+    this.locationsTimer = setTimeout(() => {
+      this.locationsTimer = null;
+      void this.ensureLocations(generation);
+    }, LOCATIONS_IDLE_DELAY_MS);
+  }
+
   private async ensureLocations(generation: number) {
     const book = this.book;
     const bookId = this.bookId;
@@ -351,6 +414,8 @@ export class EpubEngine implements ReaderEngine {
 
   private teardownBook() {
     this.locationsToken += 1;
+    this.clearLocationsTimer();
+    this.teardownResizeObserver();
 
     try {
       this.rendition?.destroy();

@@ -1,3 +1,6 @@
+/** Sentinel path for the system folder that holds individually imported books. */
+export const IMPORTED_FOLDER_PATH = "__gwuma_imported__";
+
 export type ReadingMode = "scroll" | "paginated";
 
 export type ScrollSpeedPreset = 20 | 40 | 60 | 80 | 100 | "custom";

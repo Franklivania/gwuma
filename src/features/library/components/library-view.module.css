@@ -48,6 +48,20 @@
   width: auto;
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.virtualRoot {
+  width: 100%;
+  min-width: 0;
+  content-visibility: auto;
+}
+
 .grid {
   list-style: none;
   margin: 0;
@@ -55,6 +69,42 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
   gap: var(--space-4);
+}
+
+.bookCell {
+  min-width: 0;
+}
+
+.bookMenu {
+  position: relative;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.bookMenu > button[aria-haspopup="menu"] {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 2;
+  opacity: 0;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.22);
+}
+
+.bookCell:hover .bookMenu > button[aria-haspopup="menu"],
+.bookMenu > button[aria-haspopup="menu"][aria-expanded="true"],
+.bookMenu > button[aria-haspopup="menu"]:focus-visible {
+  opacity: 1;
+}
+
+.bookCell:hover .bookMenu > button[aria-haspopup="menu"]:hover,
+.bookMenu > button[aria-haspopup="menu"][aria-expanded="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .book {
@@ -69,6 +119,8 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .book:focus-visible {

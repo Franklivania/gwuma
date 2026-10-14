@@ -15,7 +15,7 @@ export type {
   Folder,
   LibrarySnapshot,
 } from "./library";
-export { SCROLL_SPEED_NOTCHES } from "./library";
+export { SCROLL_SPEED_NOTCHES, IMPORTED_FOLDER_PATH } from "./library";
 export type {
   StatsPeriod,
   RingMetric,

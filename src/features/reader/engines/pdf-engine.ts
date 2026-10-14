@@ -248,6 +248,24 @@ export class PdfEngine implements ReaderEngine {
     canvas.style.marginInline = "auto";
     container.appendChild(canvas);
     await this.paintPage(this.pageNum, canvas, container.clientWidth, token);
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.resizeTimer) clearTimeout(this.resizeTimer);
+      this.resizeTimer = setTimeout(() => {
+        this.resizeTimer = null;
+        void this.repaintPaginatedAfterResize();
+      }, RESIZE_DEBOUNCE_MS);
+    });
+    this.resizeObserver.observe(container);
+  }
+
+  private async repaintPaginatedAfterResize() {
+    const container = this.container;
+    if (!container || this.mode !== "paginated" || !this.doc) return;
+    const canvas = container.querySelector("canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    const token = ++this.renderToken;
+    await this.paintPage(this.pageNum, canvas, container.clientWidth, token);
   }
 
   private async renderScroll(

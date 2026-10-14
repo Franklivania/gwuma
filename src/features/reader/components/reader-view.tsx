@@ -86,11 +86,46 @@ export function ReaderView() {
 
   useEffect(() => {
     if (!currentBook) return;
-    void indexBookForSearch(
-      currentBook.id,
-      currentBook.format,
-      currentBook.path,
-    );
+
+    const controller = new AbortController();
+    const bookId = currentBook.id;
+    const format = currentBook.format;
+    const path = currentBook.path;
+
+    const idleWindow = globalThis as unknown as {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const start = () => {
+      if (controller.signal.aborted) return;
+      void indexBookForSearch(bookId, format, path, {
+        signal: controller.signal,
+      });
+    };
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      idleId = idleWindow.requestIdleCallback(start, { timeout: 1500 });
+    } else {
+      timeoutId = setTimeout(start, 1000);
+    }
+
+    return () => {
+      controller.abort();
+      if (
+        idleId !== null &&
+        typeof idleWindow.cancelIdleCallback === "function"
+      ) {
+        idleWindow.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, [currentBook?.id, currentBook?.format, currentBook?.path]);
 
   useEffect(() => {

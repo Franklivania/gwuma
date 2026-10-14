@@ -140,6 +140,48 @@
   color: var(--text-secondary);
 }
 
+.folderActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.collapsedAddActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.collapsedAdd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-default),
+    color var(--duration-fast) var(--ease-default);
+}
+
+.collapsedAdd:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.collapsed .foldersHeader {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .addFolder {
   border: none;
   background: transparent;
@@ -153,6 +195,15 @@
 
 .addFolder:hover {
   background: var(--accent-soft);
+}
+
+.folderMenu {
+  width: 100%;
+}
+
+.folderMenu .folderItem {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .folderList {

@@ -99,48 +99,76 @@ fn app_data_subdir(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-fn enrich_epub_media(conn: &Connection, covers_dir: &Path) -> Result<(), String> {
-    let books = library::list_epubs_needing_media(conn).map_err(|e| e.to_string())?;
+fn enrich_one_epub(book: &BookRow, covers_dir: &Path) -> (Option<String>, Option<String>) {
+    let meta = match media::epub::extract_epub_meta(Path::new(&book.path)) {
+        Ok(meta) => meta,
+        Err(err) => {
+            eprintln!("EPUB media extract failed for {}: {err}", book.path);
+            return (None, None);
+        }
+    };
+
+    let mut cover_path: Option<String> = None;
+    if book
+        .cover_url
+        .as_ref()
+        .map(|c| c.is_empty())
+        .unwrap_or(true)
+    {
+        if let (Some(bytes), Some(ext)) = (meta.cover_bytes, meta.cover_ext) {
+            match media::epub::write_cover_file(covers_dir, &book.id, &bytes, &ext) {
+                Ok(path) => cover_path = Some(path.to_string_lossy().into_owned()),
+                Err(err) => eprintln!("Failed writing cover for {}: {err}", book.id),
+            }
+        }
+    }
+
+    let author = meta.author.filter(|a| !a.trim().is_empty());
+    let author_update = if book.author == "Unknown" || book.author.is_empty() {
+        author
+    } else {
+        None
+    };
+
+    (cover_path, author_update)
+}
+
+fn apply_epub_enrichment(
+    conn: &Connection,
+    book_id: &str,
+    cover_path: Option<&str>,
+    author: Option<&str>,
+) -> Result<(), String> {
+    if cover_path.is_none() && author.is_none() {
+        return Ok(());
+    }
+    library::set_book_cover_and_author(conn, book_id, cover_path, author)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Extract EPUB media outside the DB lock; write updates under short locks.
+fn enrich_epub_media_unlocked(
+    state: &State<'_, AppState>,
+    covers_dir: &Path,
+    only_ids: Option<&[String]>,
+) -> Result<(), String> {
+    let books = with_db(state, |conn| {
+        let all = library::list_epubs_needing_media(conn).map_err(|e| e.to_string())?;
+        Ok(match only_ids {
+            Some(ids) => all
+                .into_iter()
+                .filter(|b| ids.iter().any(|id| id == &b.id))
+                .collect(),
+            None => all,
+        })
+    })?;
+
     for book in books {
-        let meta = match media::epub::extract_epub_meta(Path::new(&book.path)) {
-            Ok(meta) => meta,
-            Err(err) => {
-                eprintln!("EPUB media extract failed for {}: {err}", book.path);
-                continue;
-            }
-        };
-
-        let mut cover_path: Option<String> = None;
-        if book
-            .cover_url
-            .as_ref()
-            .map(|c| c.is_empty())
-            .unwrap_or(true)
-        {
-            if let (Some(bytes), Some(ext)) = (meta.cover_bytes, meta.cover_ext) {
-                match media::epub::write_cover_file(covers_dir, &book.id, &bytes, &ext) {
-                    Ok(path) => cover_path = Some(path.to_string_lossy().into_owned()),
-                    Err(err) => eprintln!("Failed writing cover for {}: {err}", book.id),
-                }
-            }
-        }
-
-        let author = meta.author.filter(|a| !a.trim().is_empty());
-        let author_update = if book.author == "Unknown" || book.author.is_empty() {
-            author.as_deref()
-        } else {
-            None
-        };
-
-        if cover_path.is_some() || author_update.is_some() {
-            library::set_book_cover_and_author(
-                conn,
-                &book.id,
-                cover_path.as_deref(),
-                author_update,
-            )
-            .map_err(|e| e.to_string())?;
-        }
+        let (cover_path, author) = enrich_one_epub(&book, covers_dir);
+        with_db(state, |conn| {
+            apply_epub_enrichment(conn, &book.id, cover_path.as_deref(), author.as_deref())
+        })?;
     }
     Ok(())
 }
@@ -162,22 +190,126 @@ fn add_folder(path: String, state: State<'_, AppState>) -> Result<FolderRow, Str
 #[tauri::command]
 fn remove_folder(id: String, state: State<'_, AppState>) -> Result<(), String> {
     with_db(&state, |conn| {
+        let folder = library::get_folder(conn, &id)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("Folder not found: {id}"))?;
+        if library::is_imported_folder_path(&folder.path) {
+            return Err("Cannot remove the Imported folder".into());
+        }
         library::remove_folder(conn, &id).map_err(|e| e.to_string())
     })
 }
 
 #[tauri::command]
+fn add_books(
+    paths: Vec<String>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<LibrarySnapshot, String> {
+    let covers_dir = app_data_subdir(&app, "covers")?;
+    let mut scanned: Vec<(String, ScannedBook)> = Vec::new();
+
+    for path in &paths {
+        let file_path = PathBuf::from(path);
+        if !file_path.is_file() {
+            continue;
+        }
+        let Some(format) = book_format(&file_path) else {
+            continue;
+        };
+        let title = file_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Untitled")
+            .to_string();
+        scanned.push((
+            path.clone(),
+            ScannedBook {
+                path: file_path.to_string_lossy().into_owned(),
+                title,
+                format: format.to_string(),
+            },
+        ));
+    }
+
+    if scanned.is_empty() {
+        return Err("No supported book files selected".into());
+    }
+
+    let mut added_ids = Vec::new();
+    with_db(&state, |conn| {
+        let imported = library::ensure_imported_folder(conn).map_err(|e| e.to_string())?;
+        for (path, book) in &scanned {
+            let folder_id =
+                match library::find_folder_for_path(conn, path).map_err(|e| e.to_string())? {
+                    Some(folder) => folder.id,
+                    None => imported.id.clone(),
+                };
+            let id = library::upsert_book(conn, &folder_id, book).map_err(|e| e.to_string())?;
+            added_ids.push(id);
+        }
+        Ok(())
+    })?;
+
+    enrich_epub_media_unlocked(&state, &covers_dir, Some(&added_ids))?;
+
+    with_db(&state, |conn| {
+        library::library_snapshot(conn).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+fn remove_book(id: String, app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    let covers_dir = app_data_subdir(&app, "covers")?;
+    let cover = with_db(&state, |conn| {
+        statistics::clear_book_index(conn, &id).map_err(|e| e.to_string())?;
+        library::remove_book(conn, &id).map_err(|e| e.to_string())
+    })?;
+
+    if let Some(cover_path) = cover {
+        let path = PathBuf::from(&cover_path);
+        if path.starts_with(&covers_dir) && path.is_file() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    // Drop cached EPUB locations if present.
+    if let Ok(locations_dir) = app_data_subdir(&app, "locations") {
+        let loc = locations_dir.join(format!("{id}.json"));
+        if loc.is_file() {
+            let _ = std::fs::remove_file(loc);
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 fn refresh_library(app: AppHandle, state: State<'_, AppState>) -> Result<LibrarySnapshot, String> {
     let covers_dir = app_data_subdir(&app, "covers")?;
-    with_db(&state, |conn| {
-        let folders = library::list_folders(conn).map_err(|e| e.to_string())?;
 
-        for folder in &folders {
-            let scanned = scan_folder_path(&folder.path)?;
-            library::reconcile_scan(conn, &folder.id, &scanned).map_err(|e| e.to_string())?;
+    let folders = with_db(&state, |conn| {
+        library::list_folders(conn).map_err(|e| e.to_string())
+    })?;
+
+    let mut scans: Vec<(String, Vec<ScannedBook>)> = Vec::new();
+    for folder in &folders {
+        if library::is_imported_folder_path(&folder.path) {
+            continue;
         }
+        let scanned = scan_folder_path(&folder.path)?;
+        scans.push((folder.id.clone(), scanned));
+    }
 
-        enrich_epub_media(conn, &covers_dir)?;
+    for (folder_id, scanned) in &scans {
+        with_db(&state, |conn| {
+            library::reconcile_scan(conn, folder_id, scanned).map_err(|e| e.to_string())
+        })?;
+    }
+
+    enrich_epub_media_unlocked(&state, &covers_dir, None)?;
+
+    with_db(&state, |conn| {
         library::library_snapshot(conn).map_err(|e| e.to_string())
     })
 }
@@ -441,6 +573,8 @@ pub fn run() {
             list_folders,
             add_folder,
             remove_folder,
+            add_books,
+            remove_book,
             refresh_library,
             read_text_file,
             read_file_bytes,

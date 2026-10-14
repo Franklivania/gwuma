@@ -53,11 +53,12 @@ cloud sync, and uploads.
 
 ## What’s included
 
-- Folder scanning for TXT, PDF, and EPUB with local SQLite metadata.
-- Offline readers with progress saved between sessions.
+- Folder scanning and single-book import for TXT, PDF, and EPUB with local SQLite metadata.
+- Remove watched folders or individual books from the library (files on disk are never deleted).
+- Offline readers with progress saved between sessions; layout reflows when the window resizes.
 - Reading statistics (time + books activity rings) and durable book stats.
 - Recently read strip, bookmarks, and folder sidebar with search (`Ctrl/⌘K`).
-- Library covers and reading progress on book cards.
+- Library covers and reading progress on book cards, with a windowed library grid for large collections.
 - Scroll or paginate, with scroll speed, background, and night light.
 - Dreamy, Satin, Jazz, Helios, and Vibrant themes.
 - Lightweight desktop shell with a collapsible sidebar.

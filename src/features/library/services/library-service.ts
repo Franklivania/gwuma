@@ -58,12 +58,39 @@ export async function pickFolder(): Promise<string | null> {
   return typeof selected === "string" ? selected : null;
 }
 
+export async function pickBooks(): Promise<string[]> {
+  const selected = await open({
+    directory: false,
+    multiple: true,
+    title: "Choose book files",
+    filters: [
+      {
+        name: "Books",
+        extensions: ["pdf", "epub", "txt"],
+      },
+    ],
+  });
+
+  if (selected === null) return [];
+  if (typeof selected === "string") return [selected];
+  return selected;
+}
+
 export async function addFolder(path: string): Promise<Folder> {
   return invoke<Folder>("add_folder", { path });
 }
 
+export async function addBooks(paths: string[]): Promise<LibrarySnapshot> {
+  const snapshot = await invoke<LibrarySnapshot>("add_books", { paths });
+  return normalizeSnapshot(snapshot);
+}
+
 export async function removeFolder(id: string): Promise<void> {
   await invoke("remove_folder", { id });
+}
+
+export async function removeBook(id: string): Promise<void> {
+  await invoke("remove_book", { id });
 }
 
 export async function listFolders(): Promise<Folder[]> {
