@@ -14,6 +14,16 @@ description = "Allows removing a watched folder from SQLite."
 commands.allow = ["remove_folder"]
 
 [[permission]]
+identifier = "allow-add-books"
+description = "Allows adding individual book files to the library."
+commands.allow = ["add_books"]
+
+[[permission]]
+identifier = "allow-remove-book"
+description = "Allows removing a book from the library without deleting the file."
+commands.allow = ["remove_book"]
+
+[[permission]]
 identifier = "allow-refresh-library"
 description = "Allows scanning folders and reconciling books in SQLite."
 commands.allow = ["refresh_library"]

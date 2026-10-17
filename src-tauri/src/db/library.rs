@@ -3,13 +3,27 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Result as SqlResult};
 use uuid::Uuid;
 
+/// Sentinel path for books added individually (not via a watched folder scan).
+pub const IMPORTED_FOLDER_PATH: &str = "__gwuma_imported__";
+
 fn folder_name_from_path(path: &str) -> String {
+    if path == IMPORTED_FOLDER_PATH {
+        return "Imported".to_string();
+    }
     let trimmed = path.trim_end_matches(['/', '\\']);
     trimmed
         .rsplit(['/', '\\'])
         .next()
         .unwrap_or(trimmed)
         .to_string()
+}
+
+pub fn is_imported_folder_path(path: &str) -> bool {
+    path == IMPORTED_FOLDER_PATH
+}
+
+pub fn ensure_imported_folder(conn: &Connection) -> SqlResult<FolderRow> {
+    add_folder(conn, IMPORTED_FOLDER_PATH)
 }
 
 pub fn format_book_title(raw: &str) -> String {
@@ -62,9 +76,98 @@ pub fn add_folder(conn: &Connection, path: &str) -> SqlResult<FolderRow> {
     })
 }
 
+pub fn get_folder(conn: &Connection, id: &str) -> SqlResult<Option<FolderRow>> {
+    conn.query_row(
+        "SELECT id, path FROM folders WHERE id = ?1",
+        params![id],
+        |row| {
+            let id: String = row.get(0)?;
+            let path: String = row.get(1)?;
+            Ok(FolderRow {
+                id,
+                name: folder_name_from_path(&path),
+                path,
+            })
+        },
+    )
+    .optional()
+}
+
 pub fn remove_folder(conn: &Connection, id: &str) -> SqlResult<()> {
     conn.execute("DELETE FROM folders WHERE id = ?1", params![id])?;
     Ok(())
+}
+
+/// Upsert a single book by path into the given folder. Returns the book id.
+pub fn upsert_book(conn: &Connection, folder_id: &str, book: &ScannedBook) -> SqlResult<String> {
+    let title = format_book_title(&book.title);
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT id FROM books WHERE path = ?1",
+            params![book.path],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    if let Some(id) = existing {
+        conn.execute(
+            "UPDATE books SET folder_id = ?1, title = ?2, format = ?3, available = 1 WHERE id = ?4",
+            params![folder_id, title, book.format, id],
+        )?;
+        Ok(id)
+    } else {
+        let id = Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO books (
+                id, folder_id, path, title, author, cover, format, status,
+                progress, last_position, last_opened, completed_at, favourite, available
+             ) VALUES (?1, ?2, ?3, ?4, 'Unknown', NULL, ?5, 'unread', 0, NULL, NULL, NULL, 0, 1)",
+            params![id, folder_id, book.path, title, book.format],
+        )?;
+        Ok(id)
+    }
+}
+
+/// Resolve which watched folder owns `file_path`, preferring the longest matching
+/// parent path. Returns None when no watched folder contains the file.
+pub fn find_folder_for_path(conn: &Connection, file_path: &str) -> SqlResult<Option<FolderRow>> {
+    let folders = list_folders(conn)?;
+    let mut best: Option<FolderRow> = None;
+    let mut best_len = 0usize;
+
+    for folder in folders {
+        if is_imported_folder_path(&folder.path) {
+            continue;
+        }
+        let root = folder.path.trim_end_matches(['/', '\\']);
+        let matches = file_path == root
+            || file_path.starts_with(&format!("{root}/"))
+            || file_path.starts_with(&format!("{root}\\"));
+        if matches && root.len() >= best_len {
+            best_len = root.len();
+            best = Some(folder);
+        }
+    }
+
+    Ok(best)
+}
+
+pub fn remove_book(conn: &Connection, id: &str) -> SqlResult<Option<String>> {
+    let cover: Option<String> = conn
+        .query_row(
+            "SELECT cover FROM books WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .flatten();
+
+    let deleted = conn.execute("DELETE FROM books WHERE id = ?1", params![id])?;
+    if deleted == 0 {
+        return Ok(None);
+    }
+
+    Ok(cover)
 }
 
 pub fn list_folders(conn: &Connection) -> SqlResult<Vec<FolderRow>> {

@@ -8,7 +8,9 @@ export function MainContent({ children, title, className }: MainContentProps) {
   return (
     <div className={classes}>
       <TopBar title={title} />
-      <div className={styles.body}>{children}</div>
+      <div className={styles.body} data-main-scroll>
+        {children}
+      </div>
     </div>
   );
 }

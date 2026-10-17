@@ -763,6 +763,18 @@ pub fn is_book_indexed(conn: &Connection, book_id: &str) -> SqlResult<bool> {
     Ok(count > 0)
 }
 
+pub fn clear_book_index(conn: &Connection, book_id: &str) -> SqlResult<()> {
+    conn.execute(
+        "DELETE FROM book_text_chunks WHERE book_id = ?1",
+        params![book_id],
+    )?;
+    conn.execute(
+        "DELETE FROM book_index_meta WHERE book_id = ?1",
+        params![book_id],
+    )?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchHit {

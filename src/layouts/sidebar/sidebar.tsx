@@ -1,19 +1,22 @@
+import { ActionMenu } from "@/components/action-menu";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { Tooltip } from "@/components/tooltip";
 import { useLibraryStore } from "@/stores/library.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useSearchOverlayStore } from "@/stores/search-overlay.store";
-import type { AppView } from "@/types";
+import { IMPORTED_FOLDER_PATH, type AppView, type Folder } from "@/types";
 import {
   Analytics02Icon,
+  BookPlusIcon,
   Bookmark03Icon,
-  FolderLibraryIcon,
+  FolderAddIcon,
   LibraryIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import styles from "./sidebar.module.css";
 import type { SidebarProps } from "./sidebar.types";
 
@@ -43,7 +46,20 @@ export function Sidebar({ className, expanded, onToggle }: SidebarProps) {
   const folderId = useLibraryStore((state) => state.filters.folderId);
   const setFilters = useLibraryStore((state) => state.setFilters);
   const addFolder = useLibraryStore((state) => state.addFolder);
+  const addBooks = useLibraryStore((state) => state.addBooks);
+  const removeFolder = useLibraryStore((state) => state.removeFolder);
   const openSearch = useSearchOverlayStore((state) => state.openSearch);
+
+  const [pendingRemove, setPendingRemove] = useState<Folder | null>(null);
+
+  const folderCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const book of books) {
+      if (!book.available) continue;
+      counts.set(book.folderId, (counts.get(book.folderId) ?? 0) + 1);
+    }
+    return counts;
+  }, [books]);
 
   const classes = [
     styles.sidebar,
@@ -142,25 +158,54 @@ export function Sidebar({ className, expanded, onToggle }: SidebarProps) {
           {expanded ? (
             <>
               <span className={styles.foldersTitle}>Folders</span>
-              <button
-                type="button"
-                className={styles.addFolder}
-                onClick={() => void addFolder()}
-              >
-                Add
-              </button>
+              <div className={styles.folderActions}>
+                <button
+                  type="button"
+                  className={styles.addFolder}
+                  onClick={() => void addBooks()}
+                >
+                  Book
+                </button>
+                <button
+                  type="button"
+                  className={styles.addFolder}
+                  onClick={() => void addFolder()}
+                >
+                  Folder
+                </button>
+              </div>
             </>
           ) : (
-            <Tooltip content="Add folder" side="right">
-              <button
-                type="button"
-                className={styles.item}
-                aria-label="Add folder"
-                onClick={() => void addFolder()}
+            <div className={styles.collapsedAddActions}>
+              <Tooltip
+                className={styles.tooltipRoot}
+                content="Add book"
+                side="right"
               >
-                <HugeiconsIcon icon={FolderLibraryIcon} />
-              </button>
-            </Tooltip>
+                <button
+                  type="button"
+                  className={styles.collapsedAdd}
+                  aria-label="Add book"
+                  onClick={() => void addBooks()}
+                >
+                  <HugeiconsIcon icon={BookPlusIcon} size={20} />
+                </button>
+              </Tooltip>
+              <Tooltip
+                className={styles.tooltipRoot}
+                content="Add folder"
+                side="right"
+              >
+                <button
+                  type="button"
+                  className={styles.collapsedAdd}
+                  aria-label="Add folder"
+                  onClick={() => void addFolder()}
+                >
+                  <HugeiconsIcon icon={FolderAddIcon} size={20} />
+                </button>
+              </Tooltip>
+            </div>
           )}
         </div>
 
@@ -182,34 +227,74 @@ export function Sidebar({ className, expanded, onToggle }: SidebarProps) {
               </button>
             </li>
             {folders.map((folder) => {
-              const count = books.filter(
-                (book) => book.folderId === folder.id && book.available,
-              ).length;
+              const count = folderCounts.get(folder.id) ?? 0;
+              const isImported = folder.path === IMPORTED_FOLDER_PATH;
+              const pathLabel = isImported ? "Added individually" : folder.path;
+
               return (
                 <li key={folder.id}>
-                  <button
-                    type="button"
-                    className={[
-                      styles.folderItem,
-                      folderId === folder.id ? styles.folderActive : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => selectFolder(folder.id)}
-                    title={folder.path}
+                  <ActionMenu
+                    className={styles.folderMenu}
+                    label={`Actions for ${folder.name}`}
+                    showTrigger={!isImported}
+                    items={
+                      isImported
+                        ? []
+                        : [
+                            {
+                              id: "remove",
+                              label: "Remove folder",
+                              danger: true,
+                              onSelect: () => setPendingRemove(folder),
+                            },
+                          ]
+                    }
                   >
-                    <span className={styles.folderText}>
-                      <span className={styles.folderName}>{folder.name}</span>
-                      <span className={styles.folderPath}>{folder.path}</span>
-                    </span>
-                    <span className={styles.folderCount}>{count}</span>
-                  </button>
+                    <button
+                      type="button"
+                      className={[
+                        styles.folderItem,
+                        folderId === folder.id ? styles.folderActive : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => selectFolder(folder.id)}
+                      title={pathLabel}
+                    >
+                      <span className={styles.folderText}>
+                        <span className={styles.folderName}>{folder.name}</span>
+                        <span className={styles.folderPath}>{pathLabel}</span>
+                      </span>
+                      <span className={styles.folderCount}>{count}</span>
+                    </button>
+                  </ActionMenu>
                 </li>
               );
             })}
           </ul>
         ) : null}
       </div>
+
+      <ConfirmModal
+        open={pendingRemove !== null}
+        title="Remove folder"
+        message={
+          pendingRemove
+            ? `Remove “${pendingRemove.name}” and its ${folderCounts.get(pendingRemove.id) ?? 0} books from Gwuma? Files on disk are not deleted.`
+            : ""
+        }
+        confirmLabel="Remove"
+        danger
+        onCancel={() => setPendingRemove(null)}
+        onConfirm={() => {
+          if (!pendingRemove) return;
+          const id = pendingRemove.id;
+          setPendingRemove(null);
+          void removeFolder(id).catch((error) => {
+            console.error("Failed to remove folder", error);
+          });
+        }}
+      />
     </aside>
   );
 }

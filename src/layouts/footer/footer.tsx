@@ -23,6 +23,8 @@ function processLabel(
     case "scanning":
       return detail ? `Scanning folders… ${detail}` : "Scanning folders…";
     case "indexing":
+      if (detail === "covers") return "Generating covers…";
+      if (detail === "books") return "Adding books…";
       return detail ? `Indexing… ${detail}` : "Indexing…";
     case "done":
       return "Done";

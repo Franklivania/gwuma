@@ -9,56 +9,111 @@ import {
 } from "@/features/reader/engines";
 import type { Book } from "@/types";
 
-const CONCURRENCY = 2;
+const BATCH_SIZE = 5;
+const BATCH_FLUSH_MS = 250;
 
+export type PdfCoverEnrichOptions = {
+  onBatch: (books: Book[]) => void;
+  onStatus?: (detail: string) => void;
+  onDone?: () => void;
+};
+
+let generation = 0;
 let enriching = false;
 
-async function mapPool<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> {
-  let index = 0;
-  async function run() {
-    while (index < items.length) {
-      const current = items[index];
-      index += 1;
-      await worker(current);
+function yieldIdle(): Promise<void> {
+  return new Promise((resolve) => {
+    const ric = (
+      globalThis as unknown as {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number },
+        ) => number;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === "function") {
+      ric(() => resolve(), { timeout: 500 });
+      return;
     }
-  }
-  const runners = Array.from({ length: Math.min(limit, items.length) }, () =>
-    run(),
-  );
-  await Promise.all(runners);
+    setTimeout(resolve, 0);
+  });
+}
+
+export function cancelPdfCoverEnrichment() {
+  generation += 1;
+  enriching = false;
 }
 
 /**
  * After library refresh, generate missing PDF page-1 cover thumbnails.
- * Updates the library store via `onBook` as each cover is saved.
+ * Idle-friendly: concurrency 1, yields between books, batches store updates.
  */
 export async function enrichPdfCovers(
-  onBook: (book: Book) => void,
+  options: PdfCoverEnrichOptions,
 ): Promise<void> {
   if (enriching) return;
   enriching = true;
+  const token = ++generation;
+
+  const pending: Book[] = [];
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const flush = () => {
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (pending.length === 0) return;
+    const batch = pending.splice(0, pending.length);
+    options.onBatch(batch);
+  };
+
+  const queue = (book: Book) => {
+    pending.push(book);
+    if (pending.length >= BATCH_SIZE) {
+      flush();
+      return;
+    }
+    if (flushTimer === null) {
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        flush();
+      }, BATCH_FLUSH_MS);
+    }
+  };
+
   try {
+    options.onStatus?.("covers");
     const missing = await listBooksMissingPdfCovers();
+    if (token !== generation) return;
     if (missing.length === 0) return;
 
-    await mapPool(missing, CONCURRENCY, async (book) => {
+    for (const book of missing) {
+      if (token !== generation) return;
+      await yieldIdle();
+      if (token !== generation) return;
+
       try {
         const bytes = await getBookBytes(book.path, () =>
           readFileBytes(book.path),
         );
+        if (token !== generation) return;
         const jpeg = await renderPdfCoverThumbnail(bytes);
-        if (!jpeg) return;
+        if (token !== generation) return;
+        if (!jpeg) continue;
         const updated = await saveCoverBytes(book.id, jpeg, "jpg");
-        onBook(updated);
+        if (token !== generation) return;
+        queue(updated);
       } catch (err) {
         console.error(`PDF cover failed for ${book.path}`, err);
       }
-    });
+    }
+
+    flush();
   } finally {
-    enriching = false;
+    if (token === generation) {
+      enriching = false;
+      options.onDone?.();
+    }
   }
 }
